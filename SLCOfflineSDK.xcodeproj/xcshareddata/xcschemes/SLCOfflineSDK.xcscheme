@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme LastUpgradeVersion="1600" version="1.3">
+ <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries>
+  <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="3908D83C27D334C52782426F" BuildableName="SLCOfflineSDK.framework" BlueprintName="SLCOfflineSDK" ReferencedContainer="container:SLCOfflineSDK.xcodeproj"/></BuildActionEntry>
+ </BuildActionEntries></BuildAction>
+ <TestAction buildConfiguration="Debug" shouldUseLaunchSchemeArgsEnv="YES"><Testables>
+  <TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="2ADDEE89B29C55E11126D89F" BuildableName="SLCOfflineSDKTests.xctest" BlueprintName="SLCOfflineSDKTests" ReferencedContainer="container:SLCOfflineSDK.xcodeproj"/></TestableReference>
+ </Testables></TestAction>
+ <LaunchAction buildConfiguration="Debug"/>
+ <ProfileAction buildConfiguration="Release"/>
+ <AnalyzeAction buildConfiguration="Debug"/>
+ <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
+</Scheme>
