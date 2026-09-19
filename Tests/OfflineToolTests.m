@@ -1,16 +1,16 @@
 #import <XCTest/XCTest.h>
-#import <SLCOfflineSDK/SLCOfflineSDK.h>
+#import <OfflineTool/OfflineTool.h>
 
-@interface SLCOfflineSDKTests : XCTestCase
+@interface OfflineToolTests : XCTestCase
 @property NSURL *root;
-@property SLCPackageInstaller *installer;
+@property OFTPackageInstaller *installer;
 @property NSDictionary *digests;
 @end
-@implementation SLCOfflineSDKTests
+@implementation OfflineToolTests
 - (void)setUp {
     [super setUp];
     self.root = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:NSUUID.UUID.UUIDString];
-    self.installer = [[SLCPackageInstaller alloc] initWithRootDirectory:self.root];
+    self.installer = [[OFTPackageInstaller alloc] initWithRootDirectory:self.root];
     NSURL *url = [[NSBundle bundleForClass:self.class] URLForResource:@"manifest" withExtension:@"json" subdirectory:@"Fixtures"];
     self.digests = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:url] options:0 error:nil];
     XCTAssertNotNil(self.digests);
@@ -24,8 +24,8 @@
     XCTestExpectation *finished = [self expectationWithDescription:name];
     __block NSURL *result;
     __block NSError *failure;
-    SLCPackageRecord *record = [[SLCPackageRecord alloc] initWithVersion:version sha256:self.digests[name]];
-    [self.installer installRecord:record localArchive:[self fixture:name] progress:nil completion:^(SLCPackageRecord *r, NSURL *directory, NSError *e) {
+    OFTPackageRecord *record = [[OFTPackageRecord alloc] initWithVersion:version sha256:self.digests[name]];
+    [self.installer installRecord:record localArchive:[self fixture:name] progress:nil completion:^(OFTPackageRecord *r, NSURL *directory, NSError *e) {
         XCTAssertTrue(NSThread.isMainThread);
         XCTAssertEqual(r != nil, directory != nil);
         result = directory; failure = e; [finished fulfill];
@@ -35,10 +35,10 @@
     return result;
 }
 - (void)testRecordsRejectInvalidMetadata {
-    XCTAssertNil([[SLCPackageRecord alloc] initWithVersion:9999 sha256:self.digests[@"root"]]);
-    XCTAssertNil([[SLCPackageRecord alloc] initWithVersion:100000 sha256:@"invalid"]);
-    XCTAssertNil([[SLCPackageRecord alloc] initWithVersion:100000 sha256:[self.digests[@"root"] uppercaseString]]);
-    XCTAssertNotNil([[SLCPackageRecord alloc] initWithVersion:100000 sha256:self.digests[@"root"]]);
+    XCTAssertNil([[OFTPackageRecord alloc] initWithVersion:9999 sha256:self.digests[@"root"]]);
+    XCTAssertNil([[OFTPackageRecord alloc] initWithVersion:100000 sha256:@"invalid"]);
+    XCTAssertNil([[OFTPackageRecord alloc] initWithVersion:100000 sha256:[self.digests[@"root"] uppercaseString]]);
+    XCTAssertNotNil([[OFTPackageRecord alloc] initWithVersion:100000 sha256:self.digests[@"root"]]);
 }
 - (void)testRootAndDistArchivesPublishNormalizedDirectories {
     NSError *error;
@@ -53,7 +53,7 @@
     NSError *error;
     NSURL *a = [self install:@"root" version:100000 error:&error];
     XCTAssertNil([self install:@"dist" version:100000 error:&error]);
-    XCTAssertEqual(error.code, SLCOfflineVersionExists);
+    XCTAssertEqual(error.code, OFTOfflineVersionExists);
     NSString *contents = [NSString stringWithContentsOfURL:[a URLByAppendingPathComponent:@"index.html"] encoding:NSUTF8StringEncoding error:nil];
     XCTAssertTrue([contents containsString:@"version A"]);
 }
@@ -70,22 +70,22 @@
 }
 - (void)testDigestMismatchAndCancellationLeaveNoPublishedVersion {
     XCTestExpectation *mismatch = [self expectationWithDescription:@"digest"];
-    SLCPackageRecord *wrong = [[SLCPackageRecord alloc] initWithVersion:100000 sha256:self.digests[@"dist"]];
-    [self.installer installRecord:wrong localArchive:[self fixture:@"root"] progress:nil completion:^(SLCPackageRecord *record, NSURL *directory, NSError *error) {
-        XCTAssertNil(directory); XCTAssertEqual(error.code, SLCOfflineDigestMismatch); [mismatch fulfill];
+    OFTPackageRecord *wrong = [[OFTPackageRecord alloc] initWithVersion:100000 sha256:self.digests[@"dist"]];
+    [self.installer installRecord:wrong localArchive:[self fixture:@"root"] progress:nil completion:^(OFTPackageRecord *record, NSURL *directory, NSError *error) {
+        XCTAssertNil(directory); XCTAssertEqual(error.code, OFTOfflineDigestMismatch); [mismatch fulfill];
     }];
     [self waitForExpectations:@[mismatch] timeout:5];
     XCTestExpectation *cancelled = [self expectationWithDescription:@"cancel"];
-    NSProgress *task = [self.installer installRecord:wrong localArchive:[self fixture:@"root"] progress:nil completion:^(SLCPackageRecord *record, NSURL *directory, NSError *error) {
-        XCTAssertNil(directory); XCTAssertEqual(error.code, SLCOfflineCancelled); [cancelled fulfill];
+    NSProgress *task = [self.installer installRecord:wrong localArchive:[self fixture:@"root"] progress:nil completion:^(OFTPackageRecord *record, NSURL *directory, NSError *error) {
+        XCTAssertNil(directory); XCTAssertEqual(error.code, OFTOfflineCancelled); [cancelled fulfill];
     }];
     [task cancel];
     [self waitForExpectations:@[cancelled] timeout:5];
 }
 - (void)testMissingInputFailsWithoutPublishing {
     XCTestExpectation *done = [self expectationWithDescription:@"missing file"];
-    SLCPackageRecord *record = [[SLCPackageRecord alloc] initWithVersion:100000 sha256:self.digests[@"root"]];
-    [self.installer installRecord:record localArchive:[self.root URLByAppendingPathComponent:@"absent.zip"] progress:nil completion:^(SLCPackageRecord *r, NSURL *directory, NSError *error) {
+    OFTPackageRecord *record = [[OFTPackageRecord alloc] initWithVersion:100000 sha256:self.digests[@"root"]];
+    [self.installer installRecord:record localArchive:[self.root URLByAppendingPathComponent:@"absent.zip"] progress:nil completion:^(OFTPackageRecord *r, NSURL *directory, NSError *error) {
         XCTAssertNil(directory); XCTAssertNotNil(error); [done fulfill];
     }];
     [self waitForExpectations:@[done] timeout:5];
@@ -115,10 +115,10 @@
 - (void)testResolverPinsVersionAndChecksOriginMethodRangeAndTraversal {
     NSError *error;
     NSURL *a = [self install:@"root" version:100000 error:&error];
-    SLCOfflineResourceResolver *resolver = [[SLCOfflineResourceResolver alloc] initWithDirectory:a baseURL:[NSURL URLWithString:@"https://example.com/app/"]];
+    OFTOfflineResourceResolver *resolver = [[OFTOfflineResourceResolver alloc] initWithDirectory:a baseURL:[NSURL URLWithString:@"https://example.com/app/"]];
     XCTAssertNotNil(resolver);
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:@"https://example.com/app/static/app.js?v=1#route"]];
-    SLCOfflineResource *resource = [resolver resourceForRequest:request];
+    OFTOfflineResource *resource = [resolver resourceForRequest:request];
     XCTAssertEqualObjects(resource.MIMEType, @"text/javascript"); XCTAssertEqualObjects(resource.textEncodingName, @"utf-8");
     [self install:@"dist" version:100001 error:&error];
     XCTAssertEqualObjects([resolver resourceForRequest:request].fileURL, resource.fileURL);
@@ -127,7 +127,7 @@
     }
     NSMutableURLRequest *post = request.mutableCopy; post.HTTPMethod = @"POST"; XCTAssertNil([resolver resourceForRequest:post]);
     NSMutableURLRequest *range = request.mutableCopy; [range setValue:@"bytes=0-2" forHTTPHeaderField:@"Range"]; XCTAssertNil([resolver resourceForRequest:range]);
-    SLCOfflineResource *font = [resolver resourceForRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"https://example.com/app/font.woff2"]]];
+    OFTOfflineResource *font = [resolver resourceForRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"https://example.com/app/font.woff2"]]];
     XCTAssertEqualObjects(font.MIMEType, @"font/woff2"); XCTAssertNil(font.textEncodingName);
 }
 @end

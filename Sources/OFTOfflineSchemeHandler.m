@@ -1,28 +1,28 @@
-#import "SLCOfflineSchemeHandler.h"
-#import "SLCOfflineResourceResolver.h"
+#import "OFTOfflineSchemeHandler.h"
+#import "OFTOfflineResourceResolver.h"
 
-@interface SLCOfflineSchemeHandler ()
-@property (nonatomic) SLCOfflineResourceResolver *resolver;
+@interface OFTOfflineSchemeHandler ()
+@property (nonatomic) OFTOfflineResourceResolver *resolver;
 @property (nonatomic, copy) NSString *originalScheme;
 @property (nonatomic) NSMapTable<id<WKURLSchemeTask>, NSObject *> *tasks;
 @property (nonatomic) dispatch_queue_t readQueue;
 @end
 
-@implementation SLCOfflineSchemeHandler
+@implementation OFTOfflineSchemeHandler
 - (instancetype)initWithDirectory:(NSURL *)directory baseURL:(NSURL *)baseURL scheme:(NSString *)scheme {
     NSString *lower = scheme.lowercaseString;
     NSCharacterSet *letters = [NSCharacterSet characterSetWithCharactersInString:@"abcdefghijklmnopqrstuvwxyz"];
     NSCharacterSet *allowed = [NSCharacterSet characterSetWithCharactersInString:@"abcdefghijklmnopqrstuvwxyz0123456789+.-"];
     if (!lower.length || ![letters characterIsMember:[lower characterAtIndex:0]] ||
         [lower rangeOfCharacterFromSet:allowed.invertedSet].location != NSNotFound || [WKWebView handlesURLScheme:lower]) return nil;
-    SLCOfflineResourceResolver *resolver = [[SLCOfflineResourceResolver alloc] initWithDirectory:directory baseURL:baseURL];
+    OFTOfflineResourceResolver *resolver = [[OFTOfflineResourceResolver alloc] initWithDirectory:directory baseURL:baseURL];
     if (!resolver) return nil;
     if ((self = [super init])) {
         _scheme = lower.copy; _originalScheme = baseURL.scheme.lowercaseString;
         _resolver = resolver;
         _tasks = [NSMapTable mapTableWithKeyOptions:NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPointerPersonality
                                      valueOptions:NSPointerFunctionsStrongMemory];
-        _readQueue = dispatch_queue_create("com.offline.demo.resources", DISPATCH_QUEUE_SERIAL);
+        _readQueue = dispatch_queue_create("com.offline.tool.resources", DISPATCH_QUEUE_SERIAL);
     }
     return self;
 }
@@ -39,7 +39,7 @@
     NSURLRequest *request = task.request.copy;
     dispatch_async(self.readQueue, ^{
         NSURLComponents *parts = [NSURLComponents componentsWithURL:request.URL resolvingAgainstBaseURL:NO];
-        SLCOfflineResource *resource;
+        OFTOfflineResource *resource;
         if ([parts.scheme.lowercaseString isEqualToString:self.scheme]) {
             parts.scheme = self.originalScheme;
             NSMutableURLRequest *original = request.mutableCopy;

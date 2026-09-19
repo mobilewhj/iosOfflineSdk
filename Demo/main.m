@@ -1,5 +1,5 @@
 #import <UIKit/UIKit.h>
-#import <SLCOfflineSDK/SLCOfflineSDK.h>
+#import <OfflineTool/OfflineTool.h>
 #import "PackageDigest.h"
 #import "DemoStartupPreparationViewController.h"
 
@@ -12,7 +12,7 @@
 @property (nonatomic) NSUInteger previewGeneration;
 @property (nonatomic) BOOL busy;
 @property (nonatomic) WKWebView *webView;
-@property (nonatomic) SLCPackageInstaller *installer;
+@property (nonatomic) OFTPackageInstaller *installer;
 @end
 @implementation DemoDelegate
 - (BOOL)application:(UIApplication *)app didFinishLaunchingWithOptions:(NSDictionary *)options {
@@ -64,10 +64,10 @@
     self.preparation.retryStartup = ^{ [weakSelf install]; };
     [self.preparation showMessage:DemoStartupPreparingMessage fraction:nil];
     NSURL *root = [[[NSFileManager defaultManager] URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask].firstObject URLByAppendingPathComponent:@"offline/packages"];
-    if (!self.installer) self.installer = [[SLCPackageInstaller alloc] initWithRootDirectory:root];
+    if (!self.installer) self.installer = [[OFTPackageInstaller alloc] initWithRootDirectory:root];
     [self.installer clearOldVersionsKeeping:nil completion:^(NSError *error) {
         if (error) { [self failed:error]; return; }
-        SLCPackageRecord *record = [[SLCPackageRecord alloc] initWithVersion:10000 sha256:SLC_DEMO_SHA256];
+        OFTPackageRecord *record = [[OFTPackageRecord alloc] initWithVersion:10000 sha256:OFT_DEMO_SHA256];
         [self.installer installRecord:record localArchive:[NSBundle.mainBundle URLForResource:@"demo" withExtension:@"zip"] progress:^(NSString *stage, int64_t done, int64_t total) {
             // Local copying has no byte progress; do not invent a download percentage.
             // A host using fromURL: maps "download" to DemoStartupDownloadingMessage.
@@ -77,7 +77,7 @@
                 @"extract":DemoStartupExtractingMessage, @"publish":DemoStartupFinishingMessage}[stage] ?: DemoStartupPreparingMessage;
             NSNumber *fraction = [stage isEqualToString:@"extract"] && total > 0 ? @(MIN(0.99, (double)done / total)) : nil;
             [self.preparation showMessage:message fraction:fraction];
-        } completion:^(SLCPackageRecord *installed, NSURL *directory, NSError *failure) {
+        } completion:^(OFTPackageRecord *installed, NSURL *directory, NSError *failure) {
             if (failure) { [self failed:failure]; return; }
             [self openDirectory:directory];
         }];
@@ -85,7 +85,7 @@
 }
 - (void)openDirectory:(NSURL *)directory {
     NSURL *base = [NSURL URLWithString:@"https://demo.example/app/"];
-    SLCOfflineSchemeHandler *handler = [[SLCOfflineSchemeHandler alloc] initWithDirectory:directory baseURL:base scheme:@"offline-demo"];
+    OFTOfflineSchemeHandler *handler = [[OFTOfflineSchemeHandler alloc] initWithDirectory:directory baseURL:base scheme:@"offline-demo"];
     WKWebViewConfiguration *configuration = [WKWebViewConfiguration new];
     [configuration setURLSchemeHandler:handler forURLScheme:handler.scheme];
     [configuration.userContentController addScriptMessageHandler:self name:@"demoReady"];

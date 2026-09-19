@@ -1,10 +1,10 @@
 import Foundation
 
 /// Internal ObjC bridge. ZIPFoundation 0.9.20 sources are compiled in this target.
-@objc(SLCArchiveReader)
-public final class SLCArchiveReader: NSObject {
+@objc(OFTArchiveReader)
+public final class OFTArchiveReader: NSObject {
     private static func failure(_ message: String) -> NSError {
-        NSError(domain: "com.offline.demo", code: 7,
+        NSError(domain: "com.offline.tool", code: 7,
                 userInfo: [NSLocalizedDescriptionKey: message, "stage": "extract"])
     }
 

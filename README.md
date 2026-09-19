@@ -6,21 +6,21 @@
 
 | 标识用途 | Android | 鸿蒙 | iOS |
 | --- | --- | --- | --- |
-| SDK 代码包名 / 导入名称 | `com.offline.demo` | `harmony-offline-sdk`（OHPM 包名） | `SLCOfflineSDK`（Framework 模块名） |
-| SDK Bundle Identifier | 不适用 | 不适用 | `com.offline.demo` |
-| Demo 应用标识 | `com.offline.demo.sample` | `com.offline.demo.sample` | `com.offline.demo.sample` |
-| iOS 测试标识 | — | — | `com.offline.demo.tests` |
+| SDK 代码包名 / 导入名称 | `com.offline.tool` | `com.offline.tool`（OHPM 包名） | `OfflineTool`（Framework 模块名） |
+| SDK Bundle Identifier | 不适用 | 不适用 | `com.offline.tool` |
+| Demo 应用标识 | `com.offline.tool.sample` | `com.offline.tool.sample` | `com.offline.tool.sample` |
+| iOS 测试标识 | — | — | `com.offline.tool.tests` |
 
-iOS 没有与 Java/Kotlin 包名完全相同的概念，Bundle Identifier 是库或应用的标识，代码仍通过 `#import <SLCOfflineSDK/SLCOfflineSDK.h>` 导入。SDK 错误域为 `com.offline.demo`，内部队列使用该前缀；这些标识不是网络地址。它们沿用独立 Android SDK 的命名，不包含原业务公司的域名，也不与个人 GitHub 账号绑定。
+iOS 没有与 Java/Kotlin 包名完全相同的概念，Bundle Identifier 是库或应用的标识，代码仍通过 `#import <OfflineTool/OfflineTool.h>` 导入。SDK 错误域为 `com.offline.tool`，内部队列使用该前缀；这些标识不是网络地址。它们沿用独立 Android SDK 的命名，不包含原业务公司的域名，也不与个人 GitHub 账号绑定。
 
 ## 工程与运行
 
-打开 `SLCOfflineSDK.xcodeproj`：
+打开 `OfflineTool.xcodeproj`：
 
 | Scheme | 用途 |
 | --- | --- |
-| `SLCOfflineSDK` | SDK Framework；Test 运行独立单元测试 |
-| `SLCOfflineDemo` | 独立 iOS 示例，不包含业务素材或真实账号 |
+| `OfflineTool` | SDK Framework；Test 运行独立单元测试 |
+| `OfflineToolDemo` | 独立 iOS 示例，不包含业务素材或真实账号 |
 
 Demo 选择 iPhone 模拟器运行，点击安装按钮即可完成：内置合成 ZIP → SHA-256 校验/安装 → 自定义协议加载 HTML、CSS、JS → 读取原生虚构数据 → fetch 本地 JSON。整个过程不请求外网。`--smoke-test` 启动参数自动执行，结果保存在 Demo Documents 的 `smoke-result.json`。
 
@@ -38,17 +38,17 @@ Demo 底部提供与业务工程已对齐的中文状态和进度样式：橙色
 
 ## 使用 SDK
 
-Release 分发形式为 `SLCOfflineSDK.xcframework`，包含真机 arm64 和模拟器 arm64/x86_64。加入宿主 Target 的 Frameworks, Libraries, and Embedded Content，选择 **Embed & Sign**。仅引用二进制即可，不需要 SDK 源码或 Demo。下载渠道配置与业务请求不属于 SDK。
+Release 分发形式为 `OfflineTool.xcframework`，包含真机 arm64 和模拟器 arm64/x86_64。加入宿主 Target 的 Frameworks, Libraries, and Embedded Content，选择 **Embed & Sign**。仅引用二进制即可，不需要 SDK 源码或 Demo。下载渠道配置与业务请求不属于 SDK。
 
 ```objc
-#import <SLCOfflineSDK/SLCOfflineSDK.h>
+#import <OfflineTool/OfflineTool.h>
 
-SLCPackageInstaller *installer = [[SLCPackageInstaller alloc] initWithRootDirectory:rootURL];
-SLCPackageRecord *candidate = [[SLCPackageRecord alloc] initWithVersion:100000 sha256:trustedSHA256];
+OFTPackageInstaller *installer = [[OFTPackageInstaller alloc] initWithRootDirectory:rootURL];
+OFTPackageRecord *candidate = [[OFTPackageRecord alloc] initWithVersion:100000 sha256:trustedSHA256];
 NSProgress *job = [installer installRecord:candidate fromURL:downloadURL
     progress:^(NSString *stage, int64_t done, int64_t total) {
         // 主线程；total == -1 表示未知长度，各阶段独立计量。
-    } completion:^(SLCPackageRecord *record, NSURL *directory, NSError *error) {
+    } completion:^(OFTPackageRecord *record, NSURL *directory, NSError *error) {
         // 安装成功仅表示完整目录已发布。
         // 宿主可靠保存当前版本记录后，再让新页面绑定该目录。
     }];
@@ -61,8 +61,8 @@ NSProgress *job = [installer installRecord:candidate fromURL:downloadURL
 | `installRecord:localArchive:progress:completion:` | 复制并校验本地 ZIP；输入包应位于 SDK 工作根目录之外 |
 | `clearOldVersionsKeeping:completion:` | 冷启动且无绑定页面时清理；缺失/空的保留入口拒绝清理 |
 | `discardUnboundVersion:completion:` | 宿主确认未交付页面后，移除指定版本残留 |
-| `SLCOfflineResourceResolver` | 原 HTTP(S) URL → 固定目录内的本地资源描述 |
-| `SLCOfflineSchemeHandler` | 可选 WKWebView 自定义协议适配；不拦截 HTTP(S)，不回源或代理业务接口 |
+| `OFTOfflineResourceResolver` | 原 HTTP(S) URL → 固定目录内的本地资源描述 |
+| `OFTOfflineSchemeHandler` | 可选 WKWebView 自定义协议适配；不拦截 HTTP(S)，不回源或代理业务接口 |
 
 根目录由宿主提供，建议位于 Application Support，安装器排除备份。正式目录为 `<root>/<version>/index.html`；接受 ZIP 根目录或 `dist/index.html`，发布时归一化。SDK 只校验版本 >= 10000；业务可执行更高下限。`PackageRecord` 只有 version/sha256。
 
@@ -73,7 +73,7 @@ NSProgress *job = [installer installRecord:candidate fromURL:downloadURL
 ## WKWebView 接入
 
 ```objc
-SLCOfflineSchemeHandler *handler = [[SLCOfflineSchemeHandler alloc]
+OFTOfflineSchemeHandler *handler = [[OFTOfflineSchemeHandler alloc]
     initWithDirectory:installedDirectory
     baseURL:[NSURL URLWithString:@"https://example.com/app/"]
     scheme:@"app-offline"];
@@ -95,16 +95,16 @@ if (entry) [webView loadRequest:[NSURLRequest requestWithURL:entry]];
 ```sh
 # 若系统默认仍指向 Command Line Tools，先按实际安装位置设置：
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-xcodebuild -project SLCOfflineSDK.xcodeproj -scheme SLCOfflineSDK \
+xcodebuild -project OfflineTool.xcodeproj -scheme OfflineTool \
   -sdk macosx -destination 'platform=macOS' -derivedDataPath build/tests \
   CODE_SIGNING_ALLOWED=NO test
-xcodebuild -project SLCOfflineSDK.xcodeproj -scheme SLCOfflineDemo \
+xcodebuild -project OfflineTool.xcodeproj -scheme OfflineToolDemo \
   -destination 'generic/platform=iOS Simulator' -derivedDataPath build/demo \
   CODE_SIGNING_ALLOWED=NO build
 ./scripts/build_release.sh
 ```
 
-发布脚本读取 `VERSION`，归档 Release 真机和模拟器，启用 `BUILD_LIBRARY_FOR_DISTRIBUTION`，生成 `dist/SLCOfflineSDK-<version>.zip` 和 SHA-256 文件。ZIP 附带许可证与第三方声明；现阶段可作为 GitHub Release 附件分发，无需先搭建包服务器。源码仓库不提交 build/dist；初次上传 GitHub、创建 release 和配置远程依赖应单独执行。
+发布脚本读取 `VERSION`，归档 Release 真机和模拟器，启用 `BUILD_LIBRARY_FOR_DISTRIBUTION`，生成 `dist/OfflineTool-<version>.zip` 和 SHA-256 文件。ZIP 附带许可证与第三方声明；现阶段可作为 GitHub Release 附件分发，无需先搭建包服务器。源码仓库不提交 build/dist；初次上传 GitHub、创建 release 和配置远程依赖应单独执行。
 
 `generate_project.py` 确定性生成工程；修改工程配置时同步脚本。`generate_demo.py` 和 `generate_fixtures.py` 分别生成合成示例包和异常测试样本。SDK 内含固定版本 ZIPFoundation 0.9.20，无需联网解析依赖。
 
@@ -113,3 +113,5 @@ xcodebuild -project SLCOfflineSDK.xcodeproj -scheme SLCOfflineDemo \
 ## License
 
 Apache-2.0，第三方 ZIPFoundation 为 MIT，详见 `LICENSE`、`THIRD_PARTY_NOTICES.md` 和 `Vendor/ZIPFoundation/LICENSE`。
+
+[0.2.0 migration / 改名接入说明](docs/MIGRATION-0.2.0.md)

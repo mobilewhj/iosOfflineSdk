@@ -4,7 +4,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// Optional WKWebView adapter. One handler binds one immutable package directory.
 /// Only custom schemes are accepted; HTTP(S) interception is not supported by WebKit.
 /// No remote fallback, user information, cookies, CORS overrides or business routing.
-@interface SLCOfflineSchemeHandler : NSObject <WKURLSchemeHandler>
+@interface OFTOfflineSchemeHandler : NSObject <WKURLSchemeHandler>
 @property (nonatomic, copy, readonly) NSString *scheme;
 /// baseURL is the original HTTP(S) resource directory, with a trailing slash.
 - (nullable instancetype)initWithDirectory:(NSURL *)directory

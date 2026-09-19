@@ -5,121 +5,121 @@
 	};
 	"objectVersion" = "56";
 	"objects" = {
-		"7B84BCF236BAC615AC8D4465" = {
+		"B2D8AD167E33435055927B2C" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCArchiveReader.swift";
+			"path" = "Sources/OFTArchiveReader.swift";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.swift";
 		};
-		"4E19CE5B9E40B3EF44202004" = {
+		"78A455124106E617F9710107" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "7B84BCF236BAC615AC8D4465";
+			"fileRef" = "B2D8AD167E33435055927B2C";
 		};
-		"E9C291526960B2F0712A02AD" = {
+		"44E1585D457357372D405EE2" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCDownload.m";
+			"path" = "Sources/OFTDownload.m";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.objc";
 		};
-		"1127E8263CF9A43410976432" = {
+		"63DFB05D9ED64FC0621A4932" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "E9C291526960B2F0712A02AD";
+			"fileRef" = "44E1585D457357372D405EE2";
 		};
-		"A41EB6E3EEB1C5E2D985B119" = {
+		"AE64B7155965BA986E6ABDED" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCOfflineInternal.h";
+			"path" = "Sources/OFTOfflineInternal.h";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.h";
 		};
-		"85C2C75D44EF7475B0583071" = {
+		"D38A43A1A06FCF4E4E6DD27F" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCOfflineResourceResolver.h";
+			"path" = "Sources/OFTOfflineResourceResolver.h";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.h";
 		};
-		"6C75C87C0AF63F7E28F5601A" = {
+		"C7E863363A1381C38B51646E" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "85C2C75D44EF7475B0583071";
+			"fileRef" = "D38A43A1A06FCF4E4E6DD27F";
 			"settings" = {
 				"ATTRIBUTES" = (
 					"Public",
 				);
 			};
 		};
-		"300A428F56DA1BE2568C6496" = {
+		"AD94D5A30E3C944185F4722F" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCOfflineResourceResolver.m";
+			"path" = "Sources/OFTOfflineResourceResolver.m";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.objc";
 		};
-		"F4B4126C0E9F2B63E4AE35B1" = {
+		"F3AEC77A2C21B58F01F22CD4" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "300A428F56DA1BE2568C6496";
+			"fileRef" = "AD94D5A30E3C944185F4722F";
 		};
-		"C1CC25A8CB621DDD3A75123B" = {
+		"C6D562F6712DD99FC63BB7CC" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCOfflineSDK.h";
+			"path" = "Sources/OFTOfflineSchemeHandler.h";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.h";
 		};
-		"2946199C682B44E592FB958D" = {
+		"EC69A50BB1D973C262266B8E" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "C1CC25A8CB621DDD3A75123B";
+			"fileRef" = "C6D562F6712DD99FC63BB7CC";
 			"settings" = {
 				"ATTRIBUTES" = (
 					"Public",
 				);
 			};
 		};
-		"4F8BD6A393922882A9830C10" = {
+		"F22F4A2B482897F58ECB7504" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCOfflineSchemeHandler.h";
+			"path" = "Sources/OFTOfflineSchemeHandler.m";
+			"sourceTree" = "<group>";
+			"lastKnownFileType" = "sourcecode.c.objc";
+		};
+		"176EB16F721D4EE9CBE8FAEA" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "F22F4A2B482897F58ECB7504";
+		};
+		"44A68D76E8C6DFA49B12A019" = {
+			"isa" = "PBXFileReference";
+			"path" = "Sources/OFTPackageInstaller.h";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.h";
 		};
-		"70A3BB5405AAE6CF6DC91A82" = {
+		"BAF2049240F425601CCC9A75" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "4F8BD6A393922882A9830C10";
+			"fileRef" = "44A68D76E8C6DFA49B12A019";
 			"settings" = {
 				"ATTRIBUTES" = (
 					"Public",
 				);
 			};
 		};
-		"EE886690E9AEB79C5C16FD80" = {
+		"9235FB6614418AF10B7830EF" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCOfflineSchemeHandler.m";
+			"path" = "Sources/OFTPackageInstaller.m";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.objc";
 		};
-		"E30FB4DA4FD44DE628E9D039" = {
+		"24081EFE31E6D7AE569B35BF" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "EE886690E9AEB79C5C16FD80";
+			"fileRef" = "9235FB6614418AF10B7830EF";
 		};
-		"187245C848C4A48C0A3ABC17" = {
+		"17CBAD6CB82CB5B058555DD5" = {
 			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCPackageInstaller.h";
+			"path" = "Sources/OfflineTool.h";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.h";
 		};
-		"C6B5FD1B1BDE39F8A8B08F9F" = {
+		"0B7A3AF3B5F873B9B89F7389" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "187245C848C4A48C0A3ABC17";
+			"fileRef" = "17CBAD6CB82CB5B058555DD5";
 			"settings" = {
 				"ATTRIBUTES" = (
 					"Public",
 				);
 			};
-		};
-		"F6F2BDBB4B98EAF737CB7E34" = {
-			"isa" = "PBXFileReference";
-			"path" = "Sources/SLCPackageInstaller.m";
-			"sourceTree" = "<group>";
-			"lastKnownFileType" = "sourcecode.c.objc";
-		};
-		"C7B286585D75AAED90F8DC00" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "F6F2BDBB4B98EAF737CB7E34";
 		};
 		"B4A5CF23B2C3C6F567B2BB22" = {
 			"isa" = "PBXFileReference";
@@ -334,7 +334,7 @@
 		"ED4D285E93CA4EB5CF03E47B" = {
 			"isa" = "PBXFileReference";
 			"explicitFileType" = "wrapper.framework";
-			"path" = "SLCOfflineSDK.framework";
+			"path" = "OfflineTool.framework";
 			"sourceTree" = "BUILT_PRODUCTS_DIR";
 		};
 		"EABF923030A31A64A31E1960" = {
@@ -379,15 +379,15 @@
 					"$(inherited)",
 					"DEBUG=1",
 				);
-				"PRODUCT_NAME" = "SLCOfflineSDK";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.demo";
+				"PRODUCT_NAME" = "OfflineTool";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.tool";
 				"DEFINES_MODULE" = "YES";
 				"SKIP_INSTALL" = "NO";
 				"BUILD_LIBRARY_FOR_DISTRIBUTION" = "YES";
 				"INSTALL_PATH" = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				"DYLIB_INSTALL_NAME_BASE" = "@rpath";
 				"CURRENT_PROJECT_VERSION" = "1";
-				"MARKETING_VERSION" = "0.1.0";
+				"MARKETING_VERSION" = "0.2.0";
 			};
 		};
 		"033E8249FF01090BA5DAE9F3" = {
@@ -413,15 +413,15 @@
 				"GCC_PREPROCESSOR_DEFINITIONS" = (
 					"$(inherited)",
 				);
-				"PRODUCT_NAME" = "SLCOfflineSDK";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.demo";
+				"PRODUCT_NAME" = "OfflineTool";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.tool";
 				"DEFINES_MODULE" = "YES";
 				"SKIP_INSTALL" = "NO";
 				"BUILD_LIBRARY_FOR_DISTRIBUTION" = "YES";
 				"INSTALL_PATH" = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				"DYLIB_INSTALL_NAME_BASE" = "@rpath";
 				"CURRENT_PROJECT_VERSION" = "1";
-				"MARKETING_VERSION" = "0.1.0";
+				"MARKETING_VERSION" = "0.2.0";
 			};
 		};
 		"AA601EB05936A8441FEB81F8" = {
@@ -437,10 +437,10 @@
 			"isa" = "PBXHeadersBuildPhase";
 			"buildActionMask" = "2147483647";
 			"files" = (
-				"6C75C87C0AF63F7E28F5601A",
-				"2946199C682B44E592FB958D",
-				"70A3BB5405AAE6CF6DC91A82",
-				"C6B5FD1B1BDE39F8A8B08F9F",
+				"C7E863363A1381C38B51646E",
+				"EC69A50BB1D973C262266B8E",
+				"BAF2049240F425601CCC9A75",
+				"0B7A3AF3B5F873B9B89F7389",
 			);
 			"runOnlyForDeploymentPostprocessing" = "0";
 		};
@@ -448,11 +448,11 @@
 			"isa" = "PBXSourcesBuildPhase";
 			"buildActionMask" = "2147483647";
 			"files" = (
-				"4E19CE5B9E40B3EF44202004",
-				"1127E8263CF9A43410976432",
-				"F4B4126C0E9F2B63E4AE35B1",
-				"E30FB4DA4FD44DE628E9D039",
-				"C7B286585D75AAED90F8DC00",
+				"78A455124106E617F9710107",
+				"63DFB05D9ED64FC0621A4932",
+				"F3AEC77A2C21B58F01F22CD4",
+				"176EB16F721D4EE9CBE8FAEA",
+				"24081EFE31E6D7AE569B35BF",
 				"C76A85930AE188E23DED0F66",
 				"31E288E26622BF8C74353A5F",
 				"D5FF5A8C6E48438FA9781E7E",
@@ -508,8 +508,8 @@
 		};
 		"3908D83C27D334C52782426F" = {
 			"isa" = "PBXNativeTarget";
-			"name" = "SLCOfflineSDK";
-			"productName" = "SLCOfflineSDK";
+			"name" = "OfflineTool";
+			"productName" = "OfflineTool";
 			"productReference" = "ED4D285E93CA4EB5CF03E47B";
 			"productType" = "com.apple.product-type.framework";
 			"buildConfigurationList" = "AA601EB05936A8441FEB81F8";
@@ -524,35 +524,35 @@
 			"dependencies" = (
 			);
 		};
-		"5D44B625C45718F2150B743A" = {
+		"82B27D566E237D22D7B63353" = {
 			"isa" = "PBXFileReference";
-			"path" = "Tests/SLCDownloadTests.m";
+			"path" = "Tests/OFTDownloadTests.m";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.objc";
 		};
-		"704767633D253A70DC8FC3C0" = {
+		"AD8B88A3F69848C844CA4BF8" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "5D44B625C45718F2150B743A";
+			"fileRef" = "82B27D566E237D22D7B63353";
 		};
-		"7405CF54F9DBF3489EAC6EFF" = {
+		"12FEE34A39F8AEC559A34065" = {
 			"isa" = "PBXFileReference";
-			"path" = "Tests/SLCOfflineSDKTests.m";
+			"path" = "Tests/OFTSchemeHandlerTests.m";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.objc";
 		};
-		"E7BCF68E9BB14B79A9186143" = {
+		"2FB6D6997A0EE5E9EEA81F58" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "7405CF54F9DBF3489EAC6EFF";
+			"fileRef" = "12FEE34A39F8AEC559A34065";
 		};
-		"D9B5181937593ACA583D2C8B" = {
+		"0A83DFCD20F7B1A553D6297D" = {
 			"isa" = "PBXFileReference";
-			"path" = "Tests/SLCSchemeHandlerTests.m";
+			"path" = "Tests/OfflineToolTests.m";
 			"sourceTree" = "<group>";
 			"lastKnownFileType" = "sourcecode.c.objc";
 		};
-		"1A893B33EE300822C839A2A2" = {
+		"7B1850E30E69876642FB1BF2" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "D9B5181937593ACA583D2C8B";
+			"fileRef" = "0A83DFCD20F7B1A553D6297D";
 		};
 		"92C27985E8EF37A9F99CFA9E" = {
 			"isa" = "PBXFileReference";
@@ -562,7 +562,7 @@
 		};
 		"70F09BF32F6D77A92FF191B4" = {
 			"isa" = "PBXFileReference";
-			"path" = "SLCOfflineSDKTests.xctest";
+			"path" = "OfflineToolTests.xctest";
 			"explicitFileType" = "wrapper.cfbundle";
 			"sourceTree" = "BUILT_PRODUCTS_DIR";
 		};
@@ -594,8 +594,8 @@
 					"$(inherited)",
 					"DEBUG=1",
 				);
-				"PRODUCT_NAME" = "SLCOfflineSDKTests";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.demo.tests";
+				"PRODUCT_NAME" = "OfflineToolTests";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.tool.tests";
 				"HEADER_SEARCH_PATHS" = (
 					"$(inherited)",
 				);
@@ -638,8 +638,8 @@
 				"GCC_PREPROCESSOR_DEFINITIONS" = (
 					"$(inherited)",
 				);
-				"PRODUCT_NAME" = "SLCOfflineSDKTests";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.demo.tests";
+				"PRODUCT_NAME" = "OfflineToolTests";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.tool.tests";
 				"HEADER_SEARCH_PATHS" = (
 					"$(inherited)",
 				);
@@ -672,9 +672,9 @@
 			"isa" = "PBXSourcesBuildPhase";
 			"buildActionMask" = "2147483647";
 			"files" = (
-				"704767633D253A70DC8FC3C0",
-				"E7BCF68E9BB14B79A9186143",
-				"1A893B33EE300822C839A2A2",
+				"AD8B88A3F69848C844CA4BF8",
+				"2FB6D6997A0EE5E9EEA81F58",
+				"7B1850E30E69876642FB1BF2",
 			);
 			"runOnlyForDeploymentPostprocessing" = "0";
 		};
@@ -725,8 +725,8 @@
 		};
 		"2ADDEE89B29C55E11126D89F" = {
 			"isa" = "PBXNativeTarget";
-			"name" = "SLCOfflineSDKTests";
-			"productName" = "SLCOfflineSDKTests";
+			"name" = "OfflineToolTests";
+			"productName" = "OfflineToolTests";
 			"productReference" = "70F09BF32F6D77A92FF191B4";
 			"productType" = "com.apple.product-type.bundle.unit-test";
 			"buildConfigurationList" = "66347432B32AAA402CD1360D";
@@ -768,7 +768,7 @@
 		};
 		"908CA8548DAABD7EB19FB282" = {
 			"isa" = "PBXFileReference";
-			"path" = "SLCOfflineDemo.app";
+			"path" = "OfflineToolDemo.app";
 			"explicitFileType" = "wrapper.application";
 			"sourceTree" = "BUILT_PRODUCTS_DIR";
 		};
@@ -796,8 +796,8 @@
 					"$(inherited)",
 					"DEBUG=1",
 				);
-				"PRODUCT_NAME" = "SLCOfflineDemo";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.demo.sample";
+				"PRODUCT_NAME" = "OfflineToolDemo";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.tool.sample";
 				"INFOPLIST_FILE" = "Demo/Info.plist";
 				"HEADER_SEARCH_PATHS" = (
 					"$(inherited)",
@@ -831,8 +831,8 @@
 				"GCC_PREPROCESSOR_DEFINITIONS" = (
 					"$(inherited)",
 				);
-				"PRODUCT_NAME" = "SLCOfflineDemo";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.demo.sample";
+				"PRODUCT_NAME" = "OfflineToolDemo";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "com.offline.tool.sample";
 				"INFOPLIST_FILE" = "Demo/Info.plist";
 				"HEADER_SEARCH_PATHS" = (
 					"$(inherited)",
@@ -920,8 +920,8 @@
 		};
 		"CBFAEAFFAC44B7EB0DD5E6B3" = {
 			"isa" = "PBXNativeTarget";
-			"name" = "SLCOfflineDemo";
-			"productName" = "SLCOfflineDemo";
+			"name" = "OfflineToolDemo";
+			"productName" = "OfflineToolDemo";
 			"productReference" = "908CA8548DAABD7EB19FB282";
 			"productType" = "com.apple.product-type.application";
 			"buildConfigurationList" = "F59C9573A7CB2770500319E9";
@@ -952,16 +952,16 @@
 			"name" = "SDK Sources";
 			"sourceTree" = "<group>";
 			"children" = (
-				"7B84BCF236BAC615AC8D4465",
-				"E9C291526960B2F0712A02AD",
-				"A41EB6E3EEB1C5E2D985B119",
-				"85C2C75D44EF7475B0583071",
-				"300A428F56DA1BE2568C6496",
-				"C1CC25A8CB621DDD3A75123B",
-				"4F8BD6A393922882A9830C10",
-				"EE886690E9AEB79C5C16FD80",
-				"187245C848C4A48C0A3ABC17",
-				"F6F2BDBB4B98EAF737CB7E34",
+				"B2D8AD167E33435055927B2C",
+				"44E1585D457357372D405EE2",
+				"AE64B7155965BA986E6ABDED",
+				"D38A43A1A06FCF4E4E6DD27F",
+				"AD94D5A30E3C944185F4722F",
+				"C6D562F6712DD99FC63BB7CC",
+				"F22F4A2B482897F58ECB7504",
+				"44A68D76E8C6DFA49B12A019",
+				"9235FB6614418AF10B7830EF",
+				"17CBAD6CB82CB5B058555DD5",
 				"B4A5CF23B2C3C6F567B2BB22",
 				"6AD4A520C0DB2C2E16650ACE",
 				"DFB20B3F2CF15C6C8FE6131F",
@@ -993,9 +993,9 @@
 			"name" = "Tests";
 			"sourceTree" = "<group>";
 			"children" = (
-				"5D44B625C45718F2150B743A",
-				"7405CF54F9DBF3489EAC6EFF",
-				"D9B5181937593ACA583D2C8B",
+				"82B27D566E237D22D7B63353",
+				"12FEE34A39F8AEC559A34065",
+				"0A83DFCD20F7B1A553D6297D",
 				"92C27985E8EF37A9F99CFA9E",
 			);
 		};

@@ -51,7 +51,7 @@ def configurations(key, extra):
 
 
 sources, headers, source_refs = [], [], []
-public_headers = {'SLCOfflineSDK.h', 'SLCPackageInstaller.h', 'SLCOfflineResourceResolver.h', 'SLCOfflineSchemeHandler.h'}
+public_headers = {'OfflineTool.h', 'OFTPackageInstaller.h', 'OFTOfflineResourceResolver.h', 'OFTOfflineSchemeHandler.h'}
 for path in sorted(list((ROOT / 'Sources').glob('*')) + list((ROOT / 'Vendor/ZIPFoundation/Sources').glob('*.swift'))):
     if path.suffix not in {'.h', '.m', '.swift'}:
         continue
@@ -65,19 +65,19 @@ for path in sorted(list((ROOT / 'Sources').glob('*')) + list((ROOT / 'Vendor/ZIP
         sources.append(obj('build:' + rel, 'PBXBuildFile', fileRef=ref))
 
 framework = obj('product:sdk', 'PBXFileReference', explicitFileType='wrapper.framework',
-                path='SLCOfflineSDK.framework', sourceTree='BUILT_PRODUCTS_DIR')
+                path='OfflineTool.framework', sourceTree='BUILT_PRODUCTS_DIR')
 privacy = file('Vendor/ZIPFoundation/Sources/Resources/PrivacyInfo.xcprivacy', 'text.xml')
 source_refs.append(privacy)
 license_ref = file('Resources/ZIPFoundation-LICENSE.txt', 'text')
 source_refs.append(license_ref)
 webkit = obj('webkit', 'PBXFileReference', path='System/Library/Frameworks/WebKit.framework', sourceTree='SDKROOT', lastKnownFileType='wrapper.framework')
 source_refs.append(webkit)
-sdk = obj('target:sdk', 'PBXNativeTarget', name='SLCOfflineSDK', productName='SLCOfflineSDK',
+sdk = obj('target:sdk', 'PBXNativeTarget', name='OfflineTool', productName='OfflineTool',
           productReference=framework, productType='com.apple.product-type.framework',
-          buildConfigurationList=configurations('sdk', dict(PRODUCT_NAME='SLCOfflineSDK',
-              PRODUCT_BUNDLE_IDENTIFIER='com.offline.demo', DEFINES_MODULE='YES', SKIP_INSTALL='NO', BUILD_LIBRARY_FOR_DISTRIBUTION='YES',
+          buildConfigurationList=configurations('sdk', dict(PRODUCT_NAME='OfflineTool',
+              PRODUCT_BUNDLE_IDENTIFIER='com.offline.tool', DEFINES_MODULE='YES', SKIP_INSTALL='NO', BUILD_LIBRARY_FOR_DISTRIBUTION='YES',
               INSTALL_PATH='$(LOCAL_LIBRARY_DIR)/Frameworks', DYLIB_INSTALL_NAME_BASE='@rpath',
-              CURRENT_PROJECT_VERSION='1', MARKETING_VERSION='0.1.0')),
+              CURRENT_PROJECT_VERSION='1', MARKETING_VERSION='0.2.0')),
           buildPhases=[phase('sdk.headers', 'PBXHeadersBuildPhase', headers),
                        phase('sdk.sources', 'PBXSourcesBuildPhase', sources),
                        phase('sdk.frameworks', 'PBXFrameworksBuildPhase', [obj('sdk.webkit', 'PBXBuildFile', fileRef=webkit)]),
@@ -89,13 +89,13 @@ for path in sorted((ROOT / 'Tests').glob('*.m')):
     ref = file(rel, 'sourcecode.c.objc'); test_refs.append(ref)
     test_sources.append(obj('build:' + rel, 'PBXBuildFile', fileRef=ref))
 fixtures = file('Tests/Fixtures', 'folder'); test_refs.append(fixtures)
-test_product = obj('product:tests', 'PBXFileReference', path='SLCOfflineSDKTests.xctest',
+test_product = obj('product:tests', 'PBXFileReference', path='OfflineToolTests.xctest',
                    explicitFileType='wrapper.cfbundle', sourceTree='BUILT_PRODUCTS_DIR')
 dependency = obj('tests.sdk.dependency', 'PBXTargetDependency', target=sdk)
-tests = obj('target:tests', 'PBXNativeTarget', name='SLCOfflineSDKTests', productName='SLCOfflineSDKTests',
+tests = obj('target:tests', 'PBXNativeTarget', name='OfflineToolTests', productName='OfflineToolTests',
             productReference=test_product, productType='com.apple.product-type.bundle.unit-test',
-            buildConfigurationList=configurations('tests', dict(PRODUCT_NAME='SLCOfflineSDKTests',
-                PRODUCT_BUNDLE_IDENTIFIER='com.offline.demo.tests',
+            buildConfigurationList=configurations('tests', dict(PRODUCT_NAME='OfflineToolTests',
+                PRODUCT_BUNDLE_IDENTIFIER='com.offline.tool.tests',
                 HEADER_SEARCH_PATHS=['$(inherited)'],
                 LD_RUNPATH_SEARCH_PATHS=['$(inherited)', '@loader_path/../Frameworks', '@loader_path/Frameworks'],
                 FRAMEWORK_SEARCH_PATHS=['$(inherited)', '$(PLATFORM_DIR)/Developer/Library/Frameworks'],
@@ -110,11 +110,11 @@ tests = obj('target:tests', 'PBXNativeTarget', name='SLCOfflineSDKTests', produc
 demo_refs = [file('Demo/main.m', 'sourcecode.c.objc'), file('Demo/DemoStartupPreparationViewController.m', 'sourcecode.c.objc')]
 demo_header = file('Demo/DemoStartupPreparationViewController.h', 'sourcecode.c.h')
 demo_zip = file('Demo/Resources/demo.zip', 'archive.zip')
-demo_product = obj('product:demo', 'PBXFileReference', path='SLCOfflineDemo.app', explicitFileType='wrapper.application', sourceTree='BUILT_PRODUCTS_DIR')
-demo = obj('target:demo', 'PBXNativeTarget', name='SLCOfflineDemo', productName='SLCOfflineDemo',
+demo_product = obj('product:demo', 'PBXFileReference', path='OfflineToolDemo.app', explicitFileType='wrapper.application', sourceTree='BUILT_PRODUCTS_DIR')
+demo = obj('target:demo', 'PBXNativeTarget', name='OfflineToolDemo', productName='OfflineToolDemo',
            productReference=demo_product, productType='com.apple.product-type.application',
-           buildConfigurationList=configurations('demo', dict(PRODUCT_NAME='SLCOfflineDemo',
-               PRODUCT_BUNDLE_IDENTIFIER='com.offline.demo.sample', SUPPORTED_PLATFORMS='iphoneos iphonesimulator',
+           buildConfigurationList=configurations('demo', dict(PRODUCT_NAME='OfflineToolDemo',
+               PRODUCT_BUNDLE_IDENTIFIER='com.offline.tool.sample', SUPPORTED_PLATFORMS='iphoneos iphonesimulator',
                GENERATE_INFOPLIST_FILE='NO', INFOPLIST_FILE='Demo/Info.plist',
                HEADER_SEARCH_PATHS=['$(inherited)'],
                LD_RUNPATH_SEARCH_PATHS=['$(inherited)', '@executable_path/Frameworks'])),
@@ -133,21 +133,21 @@ main = obj('main', 'PBXGroup', sourceTree='<group>', children=[
 project = obj('project', 'PBXProject', attributes={'LastUpgradeCheck': '1600'}, buildConfigurationList=configurations('project', {}),
               compatibilityVersion='Xcode 14.0', developmentRegion='en', knownRegions=['en', 'Base'],
               mainGroup=main, productRefGroup=products, projectDirPath='', projectRoot='', targets=[sdk, tests, demo])
-output = ROOT / 'SLCOfflineSDK.xcodeproj'
+output = ROOT / 'OfflineTool.xcodeproj'
 output.mkdir(exist_ok=True)
 (output / 'project.pbxproj').write_text('// !$*UTF8*$!\n' + serialize(dict(archiveVersion=1, classes={}, objectVersion=56,
                                                                      objects=objects, rootObject=project)) + '\n')
-scheme = output / 'xcshareddata/xcschemes/SLCOfflineSDK.xcscheme'
+scheme = output / 'xcshareddata/xcschemes/OfflineTool.xcscheme'
 scheme.parent.mkdir(parents=True, exist_ok=True)
 def buildable(uid, name, product):
-    return f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{uid}" BuildableName="{product}" BlueprintName="{name}" ReferencedContainer="container:SLCOfflineSDK.xcodeproj"/>'
+    return f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{uid}" BuildableName="{product}" BlueprintName="{name}" ReferencedContainer="container:OfflineTool.xcodeproj"/>'
 scheme.write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion="1600" version="1.3">
  <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries>
-  <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{buildable(sdk, 'SLCOfflineSDK', 'SLCOfflineSDK.framework')}</BuildActionEntry>
+  <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{buildable(sdk, 'OfflineTool', 'OfflineTool.framework')}</BuildActionEntry>
  </BuildActionEntries></BuildAction>
  <TestAction buildConfiguration="Debug" shouldUseLaunchSchemeArgsEnv="YES"><Testables>
-  <TestableReference skipped="NO">{buildable(tests, 'SLCOfflineSDKTests', 'SLCOfflineSDKTests.xctest')}</TestableReference>
+  <TestableReference skipped="NO">{buildable(tests, 'OfflineToolTests', 'OfflineToolTests.xctest')}</TestableReference>
  </Testables></TestAction>
  <LaunchAction buildConfiguration="Debug"/>
  <ProfileAction buildConfiguration="Release"/>
@@ -155,13 +155,13 @@ scheme.write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
  <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
 </Scheme>
 ''')
-(scheme.parent / 'SLCOfflineDemo.xcscheme').write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
+(scheme.parent / 'OfflineToolDemo.xcscheme').write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion="1600" version="1.3">
  <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries>
-  <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{buildable(demo, 'SLCOfflineDemo', 'SLCOfflineDemo.app')}</BuildActionEntry>
+  <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{buildable(demo, 'OfflineToolDemo', 'OfflineToolDemo.app')}</BuildActionEntry>
  </BuildActionEntries></BuildAction>
  <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES">
-  <BuildableProductRunnable runnableDebuggingMode="0">{buildable(demo, 'SLCOfflineDemo', 'SLCOfflineDemo.app')}</BuildableProductRunnable>
+  <BuildableProductRunnable runnableDebuggingMode="0">{buildable(demo, 'OfflineToolDemo', 'OfflineToolDemo.app')}</BuildableProductRunnable>
  </LaunchAction>
  <AnalyzeAction buildConfiguration="Debug"/>
  <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>

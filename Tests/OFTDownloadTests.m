@@ -1,27 +1,27 @@
 #import <XCTest/XCTest.h>
-#import <SLCOfflineSDK/SLCOfflineSDK.h>
+#import <OfflineTool/OfflineTool.h>
 #import <CommonCrypto/CommonDigest.h>
 #import <sys/socket.h>
 #import <netinet/in.h>
 #import <unistd.h>
 
-@interface SLCDownloadTests : XCTestCase
+@interface OFTDownloadTests : XCTestCase
 @property NSURL *root;
-@property SLCPackageInstaller *installer;
+@property OFTPackageInstaller *installer;
 @end
-@implementation SLCDownloadTests
+@implementation OFTDownloadTests
 - (void)setUp {
     self.root = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:NSUUID.UUID.UUIDString];
-    self.installer = [[SLCPackageInstaller alloc] initWithRootDirectory:self.root];
+    self.installer = [[OFTPackageInstaller alloc] initWithRootDirectory:self.root];
 }
 - (void)tearDown { [[NSFileManager defaultManager] removeItemAtURL:self.root error:nil]; }
 - (NSData *)archive {
     return [NSData dataWithContentsOfURL:[[NSBundle bundleForClass:self.class] URLForResource:@"root" withExtension:@"zip" subdirectory:@"Fixtures"]];
 }
-- (SLCPackageRecord *)record {
+- (OFTPackageRecord *)record {
     NSData *data = [self archive]; uint8_t bytes[CC_SHA256_DIGEST_LENGTH]; CC_SHA256(data.bytes, (CC_LONG)data.length, bytes);
     NSMutableString *digest = [NSMutableString new]; for (NSUInteger i=0; i<sizeof(bytes); i++) [digest appendFormat:@"%02x",bytes[i]];
-    return [[SLCPackageRecord alloc] initWithVersion:100000 sha256:digest];
+    return [[OFTPackageRecord alloc] initWithVersion:100000 sha256:digest];
 }
 /// One-shot local HTTP fixture. Its socket timeout ensures failed tests cannot leave an accept thread blocked.
 - (NSURL *)serverWithStatus:(NSInteger)status chunked:(BOOL)chunked truncated:(BOOL)truncated {
@@ -57,7 +57,7 @@
     NSMutableArray *stages = [NSMutableArray new];
     [self.installer installRecord:[self record] fromURL:[self serverWithStatus:200 chunked:NO truncated:NO] progress:^(NSString *stage, int64_t bytes, int64_t total) {
         XCTAssertTrue(NSThread.isMainThread); [stages addObject:stage];
-    } completion:^(SLCPackageRecord *record, NSURL *directory, NSError *error) {
+    } completion:^(OFTPackageRecord *record, NSURL *directory, NSError *error) {
         XCTAssertNil(error); XCTAssertNotNil(directory); XCTAssertEqualObjects(stages.lastObject,@"publish"); [done fulfill];
     }];
     [self waitForExpectations:@[done] timeout:15];
@@ -67,21 +67,21 @@
     __block BOOL sawUnknown=NO;
     [self.installer installRecord:[self record] fromURL:[self serverWithStatus:200 chunked:YES truncated:NO] progress:^(NSString *stage, int64_t bytes, int64_t total) {
         if ([stage isEqualToString:@"download"] && bytes>0) { XCTAssertEqual(total,-1); sawUnknown=YES; }
-    } completion:^(SLCPackageRecord *record, NSURL *directory, NSError *error) {
+    } completion:^(OFTPackageRecord *record, NSURL *directory, NSError *error) {
         XCTAssertNil(error); XCTAssertNotNil(directory); XCTAssertTrue(sawUnknown); [done fulfill];
     }];
     [self waitForExpectations:@[done] timeout:15];
 }
 - (void)testPartialHTTPResponseIsRejected {
     XCTestExpectation *done = [self expectationWithDescription:@"206"];
-    [self.installer installRecord:[self record] fromURL:[self serverWithStatus:206 chunked:NO truncated:NO] progress:nil completion:^(SLCPackageRecord *record, NSURL *directory, NSError *error) {
-        XCTAssertNil(directory); XCTAssertEqual(error.code,SLCOfflineNetwork); XCTAssertEqualObjects(error.userInfo[SLCOfflineHTTPStatusKey],@206); [done fulfill];
+    [self.installer installRecord:[self record] fromURL:[self serverWithStatus:206 chunked:NO truncated:NO] progress:nil completion:^(OFTPackageRecord *record, NSURL *directory, NSError *error) {
+        XCTAssertNil(directory); XCTAssertEqual(error.code,OFTOfflineNetwork); XCTAssertEqualObjects(error.userInfo[OFTOfflineHTTPStatusKey],@206); [done fulfill];
     }];
     [self waitForExpectations:@[done] timeout:15];
 }
 - (void)testInterruptedResponseDoesNotPublish {
     XCTestExpectation *done = [self expectationWithDescription:@"truncated HTTP"];
-    [self.installer installRecord:[self record] fromURL:[self serverWithStatus:200 chunked:NO truncated:YES] progress:nil completion:^(SLCPackageRecord *record, NSURL *directory, NSError *error) {
+    [self.installer installRecord:[self record] fromURL:[self serverWithStatus:200 chunked:NO truncated:YES] progress:nil completion:^(OFTPackageRecord *record, NSURL *directory, NSError *error) {
         XCTAssertNil(directory); XCTAssertNotNil(error); [done fulfill];
     }];
     [self waitForExpectations:@[done] timeout:15];
