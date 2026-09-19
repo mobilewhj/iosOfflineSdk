@@ -77,7 +77,7 @@ sdk = obj('target:sdk', 'PBXNativeTarget', name='OfflineTool', productName='Offl
           buildConfigurationList=configurations('sdk', dict(PRODUCT_NAME='OfflineTool',
               PRODUCT_BUNDLE_IDENTIFIER='com.offline.tool', DEFINES_MODULE='YES', SKIP_INSTALL='NO', BUILD_LIBRARY_FOR_DISTRIBUTION='YES',
               INSTALL_PATH='$(LOCAL_LIBRARY_DIR)/Frameworks', DYLIB_INSTALL_NAME_BASE='@rpath',
-              CURRENT_PROJECT_VERSION='1', MARKETING_VERSION='0.2.0')),
+              CURRENT_PROJECT_VERSION='1', MARKETING_VERSION=(ROOT / 'VERSION').read_text().strip())),
           buildPhases=[phase('sdk.headers', 'PBXHeadersBuildPhase', headers),
                        phase('sdk.sources', 'PBXSourcesBuildPhase', sources),
                        phase('sdk.frameworks', 'PBXFrameworksBuildPhase', [obj('sdk.webkit', 'PBXBuildFile', fileRef=webkit)]),

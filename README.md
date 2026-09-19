@@ -36,6 +36,20 @@ Demo 底部提供与业务工程已对齐的中文状态和进度样式：橙色
 
 真机运行 Demo 需要在 Xcode 配置自己的签名团队。业务 App 的第三方 SDK 是否支持模拟器，不影响这个独立 Demo。
 
+## SPM 远程依赖（0.2.0 起，推荐）
+
+Objective-C 和 Swift 项目均可使用，不需要将业务代码改写成 Swift。
+
+1. Xcode → File → Add Package Dependencies，输入 `https://github.com/mobilewhj/iosOfflineSdk`。
+2. 选择版本 `0.2.0`（首次接入建议 Exact Version），将产品 `OfflineTool` 添加到业务 App Target。
+3. 移除手动添加的旧 `OfflineTool.xcframework` / `SLCOfflineSDK.xcframework` 链接及嵌入项，避免重复引用。保留业务 App 自己的 Bundle ID。
+4. Objective-C 使用 `#import <OfflineTool/OfflineTool.h>`；Swift 使用 `import OfflineTool`。无需为这个模块增加桥接头。
+5. Xcode 自动下载并校验二进制。若工程有自定义 Framework 架构裁剪脚本，请跳过 `OfflineTool`；已有 Swift 标准库嵌入配置继续保留。
+
+SPM 管理库的下载和依赖关系；最终以业务 App Target 编译、Archive 和运行结果确认嵌入是否正确。最低 iOS 12.0。现有 `OFT` API 与 0.2.0 一致。
+
+下方手动 XCFramework 接入为可选方式，与 SPM 二选一。
+
 ## 使用 SDK
 
 Release 分发形式为 `OfflineTool.xcframework`，包含真机 arm64 和模拟器 arm64/x86_64。加入宿主 Target 的 Frameworks, Libraries, and Embedded Content，选择 **Embed & Sign**。仅引用二进制即可，不需要 SDK 源码或 Demo。下载渠道配置与业务请求不属于 SDK。
@@ -104,7 +118,7 @@ xcodebuild -project OfflineTool.xcodeproj -scheme OfflineToolDemo \
 ./scripts/build_release.sh
 ```
 
-发布脚本读取 `VERSION`，归档 Release 真机和模拟器，启用 `BUILD_LIBRARY_FOR_DISTRIBUTION`，生成 `dist/OfflineTool-<version>.zip` 和 SHA-256 文件。ZIP 附带许可证与第三方声明；现阶段可作为 GitHub Release 附件分发，无需先搭建包服务器。源码仓库不提交 build/dist；初次上传 GitHub、创建 release 和配置远程依赖应单独执行。
+发布脚本读取 `VERSION`，归档 Release 真机和模拟器，启用 `BUILD_LIBRARY_FOR_DISTRIBUTION`，生成 `dist/OfflineTool-<version>.zip` 和 SHA-256 文件。ZIP 附带许可证与第三方声明；现阶段可作为 GitHub Release 附件分发，无需先搭建包服务器。源码仓库不提交 build/dist；同时生成根目录含 XCFramework 的 SPM ZIP 与对应 Package.swift。上传发布附件后，提交 Package.swift 并创建对应版本标签。已发布附件与标签不要覆盖。
 
 `generate_project.py` 确定性生成工程；修改工程配置时同步脚本。`generate_demo.py` 和 `generate_fixtures.py` 分别生成合成示例包和异常测试样本。SDK 内含固定版本 ZIPFoundation 0.9.20，无需联网解析依赖。
 

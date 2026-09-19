@@ -30,4 +30,9 @@ mkdir -p "$sdk_package/Licenses"
 cp "$sdk_root/Vendor/ZIPFoundation/LICENSE" "$sdk_package/Licenses/ZIPFoundation-LICENSE.txt"
 ditto -c -k --keepParent "$sdk_package" "$sdk_package.zip"
 (cd "$sdk_root/dist" && shasum -a 256 "OfflineTool-$sdk_version.zip" > "OfflineTool-$sdk_version.zip.sha256")
+# SwiftPM requires the XCFramework at the archive root.
+sdk_spm_zip="$sdk_root/dist/OfflineTool-$sdk_version.xcframework.zip"
+(cd "$sdk_package" && ditto -c -k --norsrc --noextattr --keepParent OfflineTool.xcframework "$sdk_spm_zip")
+python3 "$sdk_root/scripts/generate_package.py"
 echo "Local release: $sdk_package.zip"
+echo "SwiftPM artifact: $sdk_spm_zip"

@@ -5,3 +5,6 @@ dist/
 *.xcarchive/
 *.xcframework/
 *.xcresult/
+
+.build/
+.swiftpm/
