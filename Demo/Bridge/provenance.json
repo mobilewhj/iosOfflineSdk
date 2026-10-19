@@ -1,0 +1,36 @@
+{
+  "source": "https://github.com/marcuswestin/WebViewJavascriptBridge",
+  "purpose": "Licensed iframe/evaluateJavaScript bridge implementation used by the synthetic offline sample. Exact local source digests are recorded below; this is not a claim of an unmodified upstream checkout.",
+  "files": [
+    {
+      "file": "WKWebViewJavascriptBridge.h",
+      "sha256": "bd5ee47faea5745da291704603c9a5c04b11c2a24445a9e9eeb1f01740ce9435"
+    },
+    {
+      "file": "WKWebViewJavascriptBridge.m",
+      "sha256": "3d1f3e0ad5aaf584176fde4e886643d45aa73d3219a625275518fb888b5c0f76"
+    },
+    {
+      "file": "WebViewJavascriptBridgeBase.h",
+      "sha256": "344a28820860010d8985aae6c32756873333d56021445dbdabaf12ea7c6dc57d"
+    },
+    {
+      "file": "WebViewJavascriptBridgeBase.m",
+      "sha256": "999e4e34787cc74aeff849c4badf679bca3f27927f2f6beb77d3f3c05601649b"
+    },
+    {
+      "file": "WebViewJavascriptBridge_JS.h",
+      "sha256": "2c4933033e955bc41d2a816d20c8d12f6aca83f0293a3bf9d81d76b1893b6543"
+    },
+    {
+      "file": "WebViewJavascriptBridge_JS.m",
+      "sha256": "e49b7b6e3d071de4fc46b79a505cc883abece22484aa57097577a038a2dfeed5"
+    }
+  ],
+  "license": {
+    "url": "https://github.com/marcuswestin/WebViewJavascriptBridge/blob/master/LICENSE",
+    "sha256": "4d714d9189a958eb2501cb0e9bf225b39c301987a62aadcf1f2ea93fc5385d14",
+    "copyrightURL": "https://github.com/marcuswestin/WebViewJavascriptBridge/blob/master/COPYRIGHT",
+    "copyrightSHA256": "04fb3ad7d7ec6e81c583a7a261e9a8b825f12eb880ef7d13b5962876aabf4e86"
+  }
+}

@@ -1,7 +1,7 @@
 #import <XCTest/XCTest.h>
 #import <OfflineTool/OfflineTool.h>
 @interface OFTTestSchemeTask : NSObject <WKURLSchemeTask>
-@property (nonatomic) NSURLRequest *request;
+@property (nonatomic, copy) NSURLRequest *request;
 @property (nonatomic) NSMutableArray<NSString *> *events;
 @property (nonatomic) NSURLResponse *response;
 @property (nonatomic) NSData *data;

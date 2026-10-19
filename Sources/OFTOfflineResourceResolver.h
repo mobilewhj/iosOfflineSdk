@@ -11,6 +11,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface OFTOfflineResourceResolver : NSObject
 - (nullable instancetype)initWithDirectory:(NSURL *)directory baseURL:(NSURL *)baseURL;
 - (instancetype)init NS_UNAVAILABLE;
+/// 纯 URL 范围校验，供托管页面和显式回源复用；不访问文件系统。
++ (BOOL)URL:(NSURL *)URL isWithinStaticRoot:(NSURL *)baseURL;
++ (BOOL)isValidStaticRoot:(NSURL *)baseURL;
 - (nullable OFTOfflineResource *)resourceForRequest:(NSURLRequest *)request;
 @end
 NS_ASSUME_NONNULL_END

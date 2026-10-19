@@ -4,14 +4,25 @@ NS_ASSUME_NONNULL_BEGIN
 FOUNDATION_EXPORT NSErrorDomain const OFTOfflineErrorDomain;
 FOUNDATION_EXPORT NSString * const OFTOfflineErrorStageKey;
 FOUNDATION_EXPORT NSString * const OFTOfflineHTTPStatusKey;
+/// 失败仍可能留下已发布目录；以下事实不会把失败 completion 变成成功。
+FOUNDATION_EXPORT NSString * const OFTOfflineCleanupErrorsKey;
+FOUNDATION_EXPORT NSString * const OFTOfflinePublishedRecordKey;
+FOUNDATION_EXPORT NSString * const OFTOfflinePublishedDirectoryKey;
+FOUNDATION_EXPORT NSString * const OFTOfflinePublishedDirectoryRemainsKey;
+FOUNDATION_EXPORT NSString * const OFTOfflinePublishedDirectoryStateUnknownKey;
+FOUNDATION_EXPORT NSString * const OFTOfflineRequestStartedKey;
+/// Internal retry facts; processing statistics remain independent from retry quota.
+FOUNDATION_EXPORT NSString * const OFTOfflineNetworkRetryKey;
+FOUNDATION_EXPORT NSString * const OFTOfflineRetryAfterKey;
 
 typedef NS_ENUM(NSInteger, OFTOfflineErrorCode) {
     OFTOfflineInvalidInput = 1, OFTOfflineFileIO, OFTOfflineNetwork,
     OFTOfflineTimeout, OFTOfflineTooLarge, OFTOfflineDigestMismatch,
-    OFTOfflineInvalidArchive, OFTOfflineVersionExists, OFTOfflineCancelled
+    OFTOfflineInvalidArchive, OFTOfflineVersionExists, OFTOfflineCancelled,
+    OFTOfflineStorageRead, OFTOfflineStorageWrite
 };
 
-/// Immutable metadata. The host owns version selection and persistent storage.
+/// Immutable normalized metadata; the managed SDK owns package selection and lifecycle storage.
 @interface OFTPackageRecord : NSObject <NSCopying>
 @property (nonatomic, readonly) NSInteger version;
 @property (nonatomic, copy, readonly) NSString *sha256;

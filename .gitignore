@@ -1,10 +1,26 @@
+# Generated products and personal IDE state
 .DS_Store
 **/xcuserdata/
+*.xcuserstate
 build/
 dist/
 *.xcarchive/
 *.xcframework/
 *.xcresult/
-
+*.dSYM/
 .build/
 .swiftpm/
+
+# Private verification, interpreter caches and local signing material
+docs/verification/
+**/__pycache__/
+*.pyc
+*.p12
+*.pfx
+*.p8
+*.key
+*.pem
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.ipa

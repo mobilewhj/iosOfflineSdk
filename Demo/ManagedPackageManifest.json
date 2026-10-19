@@ -1,0 +1,12 @@
+{
+  "A": {
+    "version": 10000,
+    "sha256": "daf909409a96ba63d4e53d8b6015c076953af48afcca2fda1f4c5e2dbb815b15",
+    "archive": "Demo/Resources/managed-A.zip"
+  },
+  "B": {
+    "version": 10001,
+    "sha256": "5945f8b8930c950e0855fe55129bb9895503ab3b6107a4cb2fb0db874c30c8fc",
+    "archive": "Demo/Resources/managed-B.zip"
+  }
+}

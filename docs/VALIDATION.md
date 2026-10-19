@@ -1,16 +1,11 @@
-# 验证记录
+# 验证范围
 
-当前代码最低部署设置 iOS 12.0，使用本机 Xcode 26.6 / iOS 26.5 Simulator 验证。实际最低系统真机未验收。
+0.3.1 的最低部署设置为 iOS 15。原生单元测试、源码 Demo 构建、最终二进制消费者和接入方业务验收分别记录，不能相互替代。历史 0.2.0 的记录见 VALIDATION-0.2.0.md，不作为当前版本的验证成绩。
 
-- 独立 macOS XCTest：19 项通过，包含 HTTP 完整响应、未知长度、中断、异常 ZIP、版本保护、目录清理和 6 项 WebKit handler 测试。
-- Handler 测试包含保留协议拒绝、URL 范围、query/hash、内容与 MIME、缺失/外域/POST/Range 拒绝、读取过程中取消和响应回调内取消。
-- 独立 iOS Demo Simulator 构建通过，不依赖业务工程、账号或远程配置。
-- 独立 Demo 在 iPhone 17 Pro / iOS 26.5 上运行成功：本地 HTML/JS/CSS/JSON 加载、原生示例数据注入均通过，报告 ready=true、injected=true，origin 为 offline-demo://demo.example。
-- Release 真机及模拟器归档通过，XCFramework 包含 ios-arm64 和 ios-arm64_x86_64-simulator，并附有 Swift module interfaces、隐私清单及 ZIPFoundation 许可。
-- 业务工程的 UI Demo 已只引用该 XCFramework 构建通过；业务配置测试仍在宿主，1 项通过。
+SDK 回归覆盖真实 SQLite 事务与损坏隔离、生命周期、首装/静默调度、取消重入、重试额度、安装统计边界、ZIP/文件失败和 WebKit 资源适配。具体场景与原生命令见 VALIDATION-LIFECYCLE.md。完整回归包含历史低层安装器的 120 秒总请求时限测试；托管下载使用宿主 NSURLSessionConfiguration 或平台默认时限，不继承该人工时限。
 
-这些验证不能代替实际业务 H5 的身份、CORS、登录和支付联调。
+正式制品应重新构建 device/simulator 切片，核对版本、最低系统、UUID、ZIP checksum 和逐文件摘要。独立消费者只链接最终 XCFramework；远端 SPM 消费另核对 exact 版本与解析 commit。原生 macOS XCTest 不证明 iOS 最低系统运行；构建成功不等于已执行应用。
 
-发布产物复核：将独立 Demo 内的 Framework 换为最终 Release XCFramework 的模拟器切片，再次安装运行，报告 ready=true、injected=true。本次验证实际执行了 Release 二进制，不仅是源码 Demo 编译。业务主 App 无签名真机目标构建通过，产物中存在 SDK arm64 二进制，主可执行文件包含对应 @rpath 加载项；旧架构裁剪脚本已跳过该 XCFramework。
+接入方仍需在自己的隔离环境验证首装隐私、真实配置和 ZIP/SHA 来源、高版本 ready 后真实冷进程启用、取消/重入、退出和账户切换、Bridge、断网本地资源字节及联网回源、资源缓存、Reporter HTTP/业务响应及后台收件。还需核对实际运行模块身份、iOS15 和完整业务页面；页面 Network Error、空白或其他业务异常必须保留为未定位，不能因 SDK 发布而排除 SDK。
 
-2026-09-18：独立 Demo 补齐启动进度 UI，中文状态、渐变进度条、扫光动画和失败重试沿用此前业务 UI 的样式。Simulator 构建通过，实际查看下载 65% 与安装完成 100% 显示；点击“预览启动效果”进入准备阶段，预览结束展示失败提示，点击“重试”重新进入准备阶段。真实内置包安装再次通过，报告 ready=true、injected=true。UI 代码仅属于 Demo，不改变 SDK 二进制与业务工程引用的 0.1.0 发布包。
+自定义 scheme 改变网页 origin。Cookie、localStorage、身份注入、CORS、导航和宿主隐私撤回接线需要单独验收，不放宽网关或浏览器安全策略。物理设备、签名构建、模拟器与测试替身证据应分别保存，公开 SDK 不包含接入方业务证据或账号。

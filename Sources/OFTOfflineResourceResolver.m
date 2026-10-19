@@ -19,21 +19,33 @@ static BOOL OFTSafePath(NSString *path) {
         ![path.pathComponents containsObject:@".."] && ![path.pathComponents containsObject:@"."];
 }
 static NSInteger OFTPort(NSURLComponents *url) { return url.port ? url.port.integerValue : ([url.scheme.lowercaseString isEqualToString:@"https"] ? 443 : 80); }
++ (BOOL)isValidStaticRoot:(NSURL *)baseURL {
+    NSURLComponents *base = [NSURLComponents componentsWithURL:baseURL resolvingAgainstBaseURL:NO];
+    return [@[@"http", @"https"] containsObject:base.scheme.lowercaseString] && base.host.length &&
+        !base.user && !base.password && !base.query && !base.fragment &&
+        [base.path hasSuffix:@"/"] && OFTSafePath(base.path);
+}
++ (BOOL)URL:(NSURL *)URL isWithinStaticRoot:(NSURL *)baseURL {
+    if (![self isValidStaticRoot:baseURL]) return NO;
+    NSURLComponents *base = [NSURLComponents componentsWithURL:baseURL resolvingAgainstBaseURL:NO];
+    NSURLComponents *url = [NSURLComponents componentsWithURL:URL resolvingAgainstBaseURL:NO];
+    return url.scheme.length && url.host.length &&
+        [url.scheme caseInsensitiveCompare:base.scheme] == NSOrderedSame &&
+        [url.host caseInsensitiveCompare:base.host] == NSOrderedSame && OFTPort(url) == OFTPort(base) &&
+        !url.user && !url.password && OFTSafePath(url.path) && [url.path hasPrefix:base.path];
+}
 - (instancetype)initWithDirectory:(NSURL *)directory baseURL:(NSURL *)baseURL {
     NSURLComponents *base = [NSURLComponents componentsWithURL:baseURL resolvingAgainstBaseURL:NO];
     struct stat info;
     if (!directory.isFileURL || lstat(directory.fileSystemRepresentation, &info) != 0 || !S_ISDIR(info.st_mode) ||
-        ![@[@"http", @"https"] containsObject:base.scheme.lowercaseString] || !base.host.length ||
-        base.user || base.password || base.query || base.fragment || ![base.path hasSuffix:@"/"] || !OFTSafePath(base.path)) return nil;
+        ![self.class isValidStaticRoot:baseURL]) return nil;
     if ((self = [super init])) { _directory = directory.URLByResolvingSymlinksInPath; _base = base; }
     return self;
 }
 - (OFTOfflineResource *)resourceForRequest:(NSURLRequest *)request {
     if (![request.HTTPMethod isEqualToString:@"GET"] || [request valueForHTTPHeaderField:@"Range"]) return nil;
+    if (![self.class URL:request.URL isWithinStaticRoot:self.base.URL]) return nil;
     NSURLComponents *url = [NSURLComponents componentsWithURL:request.URL resolvingAgainstBaseURL:NO];
-    if (!url.scheme.length || !url.host.length || [url.scheme caseInsensitiveCompare:self.base.scheme] != NSOrderedSame ||
-        [url.host caseInsensitiveCompare:self.base.host] != NSOrderedSame || OFTPort(url) != OFTPort(self.base) ||
-        url.user || url.password || !OFTSafePath(url.path) || ![url.path hasPrefix:self.base.path]) return nil;
     NSString *relative = [url.path substringFromIndex:self.base.path.length];
     if (!relative.length) relative = @"index.html";
     NSURL *file = [self.directory URLByAppendingPathComponent:relative];

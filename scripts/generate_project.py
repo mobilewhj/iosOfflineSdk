@@ -37,13 +37,22 @@ def configurations(key, extra):
     for name in ('Debug', 'Release'):
         settings = dict(CLANG_ENABLE_MODULES='YES', CLANG_ENABLE_OBJC_ARC='YES', SDKROOT='iphoneos',
                         SUPPORTED_PLATFORMS='iphoneos iphonesimulator macosx',
-                        IPHONEOS_DEPLOYMENT_TARGET='12.0', MACOSX_DEPLOYMENT_TARGET='10.15',
+                        IPHONEOS_DEPLOYMENT_TARGET='15.0', MACOSX_DEPLOYMENT_TARGET='10.15',
                         SWIFT_VERSION='5.0', GCC_C_LANGUAGE_STANDARD='gnu11',
                         GCC_OPTIMIZATION_LEVEL='0' if name == 'Debug' else 's',
                         SWIFT_OPTIMIZATION_LEVEL='-Onone' if name == 'Debug' else '-O',
                         DEBUG_INFORMATION_FORMAT='dwarf', ONLY_ACTIVE_ARCH='YES' if name == 'Debug' else 'NO',
                         ENABLE_TESTABILITY='YES', GENERATE_INFOPLIST_FILE='YES', CODE_SIGN_STYLE='Automatic', TARGETED_DEVICE_FAMILY='1,2',
                         GCC_PREPROCESSOR_DEFINITIONS=['$(inherited)', 'DEBUG=1'] if name == 'Debug' else ['$(inherited)'])
+        if name == 'Release':
+            # Public archives keep neutral source paths and omit machine-specific debug options.
+            settings.update(DEBUG_INFORMATION_FORMAT='dwarf-with-dsym',
+                            STRIP_INSTALLED_PRODUCT='YES', COPY_PHASE_STRIP='YES',
+                            STRIP_STYLE='non-global', SWIFT_SERIALIZE_DEBUGGING_OPTIONS='NO',
+                            OTHER_CFLAGS=['$(inherited)', '-ffile-prefix-map=$(SRCROOT)=/OfflineTool',
+                                          '-fdebug-prefix-map=$(SRCROOT)=/OfflineTool'],
+                            OTHER_SWIFT_FLAGS=['$(inherited)', '-file-prefix-map', '$(SRCROOT)=/OfflineTool',
+                                               '-debug-prefix-map', '$(SRCROOT)=/OfflineTool'])
         settings.update(extra)
         configs.append(obj(key + name, 'XCBuildConfiguration', name=name, buildSettings=settings))
     return obj(key + 'configs', 'XCConfigurationList', buildConfigurations=configs,
@@ -51,7 +60,9 @@ def configurations(key, extra):
 
 
 sources, headers, source_refs = [], [], []
-public_headers = {'OfflineTool.h', 'OFTPackageInstaller.h', 'OFTOfflineResourceResolver.h', 'OFTOfflineSchemeHandler.h'}
+public_headers = {'OfflineTool.h', 'OFTPackageInstaller.h', 'OFTOfflineResourceResolver.h',
+                  'OFTOfflineSchemeHandler.h', 'OFTManagedTypes.h', 'OFTManagedStorage.h',
+                  'OFTManagedOfflineSDK.h'}
 for path in sorted(list((ROOT / 'Sources').glob('*')) + list((ROOT / 'Vendor/ZIPFoundation/Sources').glob('*.swift'))):
     if path.suffix not in {'.h', '.m', '.swift'}:
         continue
@@ -77,7 +88,7 @@ sdk = obj('target:sdk', 'PBXNativeTarget', name='OfflineTool', productName='Offl
           buildConfigurationList=configurations('sdk', dict(PRODUCT_NAME='OfflineTool',
               PRODUCT_BUNDLE_IDENTIFIER='com.offline.tool', DEFINES_MODULE='YES', SKIP_INSTALL='NO', BUILD_LIBRARY_FOR_DISTRIBUTION='YES',
               INSTALL_PATH='$(LOCAL_LIBRARY_DIR)/Frameworks', DYLIB_INSTALL_NAME_BASE='@rpath',
-              CURRENT_PROJECT_VERSION='1', MARKETING_VERSION=(ROOT / 'VERSION').read_text().strip())),
+              CURRENT_PROJECT_VERSION='1', OTHER_LDFLAGS=['$(inherited)', '-lsqlite3'], MARKETING_VERSION=(ROOT / 'VERSION').read_text().strip())),
           buildPhases=[phase('sdk.headers', 'PBXHeadersBuildPhase', headers),
                        phase('sdk.sources', 'PBXSourcesBuildPhase', sources),
                        phase('sdk.frameworks', 'PBXFrameworksBuildPhase', [obj('sdk.webkit', 'PBXBuildFile', fileRef=webkit)]),
@@ -99,7 +110,7 @@ tests = obj('target:tests', 'PBXNativeTarget', name='OfflineToolTests', productN
                 HEADER_SEARCH_PATHS=['$(inherited)'],
                 LD_RUNPATH_SEARCH_PATHS=['$(inherited)', '@loader_path/../Frameworks', '@loader_path/Frameworks'],
                 FRAMEWORK_SEARCH_PATHS=['$(inherited)', '$(PLATFORM_DIR)/Developer/Library/Frameworks'],
-                OTHER_LDFLAGS=['$(inherited)', '-framework', 'XCTest'])),
+                OTHER_LDFLAGS=['$(inherited)', '-framework', 'XCTest', '-lsqlite3'])),
             buildPhases=[phase('tests.sources', 'PBXSourcesBuildPhase', test_sources),
                 phase('tests.frameworks', 'PBXFrameworksBuildPhase', [obj('tests.link.sdk', 'PBXBuildFile', fileRef=framework)]),
                 phase('tests.resources', 'PBXResourcesBuildPhase', [obj('tests.fixtures', 'PBXBuildFile', fileRef=fixtures)]),
@@ -107,20 +118,25 @@ tests = obj('target:tests', 'PBXNativeTarget', name='OfflineToolTests', productN
                     dstPath='', dstSubfolderSpec=10, name='Embed SDK', runOnlyForDeploymentPostprocessing=0,
                     files=[obj('tests.embed.sdk', 'PBXBuildFile', fileRef=framework, settings={'ATTRIBUTES':['CodeSignOnCopy', 'RemoveHeadersOnCopy']})])],
             buildRules=[], dependencies=[dependency])
-demo_refs = [file('Demo/main.m', 'sourcecode.c.objc'), file('Demo/DemoStartupPreparationViewController.m', 'sourcecode.c.objc')]
-demo_header = file('Demo/DemoStartupPreparationViewController.h', 'sourcecode.c.h')
+demo_refs = [file(p.relative_to(ROOT).as_posix(), 'sourcecode.c.objc')
+             for p in sorted((ROOT / 'Demo').rglob('*.m'))]
+demo_headers = [file(p.relative_to(ROOT).as_posix(), 'sourcecode.c.h')
+                for p in sorted((ROOT / 'Demo').rglob('*.h'))]
 demo_zip = file('Demo/Resources/demo.zip', 'archive.zip')
+demo_licenses = [file(p.relative_to(ROOT).as_posix(), 'text')
+                 for p in (ROOT / 'Demo/Bridge/LICENSE.txt', ROOT / 'Demo/Bridge/COPYRIGHT') if p.exists()]
 demo_product = obj('product:demo', 'PBXFileReference', path='OfflineToolDemo.app', explicitFileType='wrapper.application', sourceTree='BUILT_PRODUCTS_DIR')
 demo = obj('target:demo', 'PBXNativeTarget', name='OfflineToolDemo', productName='OfflineToolDemo',
            productReference=demo_product, productType='com.apple.product-type.application',
            buildConfigurationList=configurations('demo', dict(PRODUCT_NAME='OfflineToolDemo',
-               PRODUCT_BUNDLE_IDENTIFIER='com.offline.tool.sample', SUPPORTED_PLATFORMS='iphoneos iphonesimulator',
+               PRODUCT_BUNDLE_IDENTIFIER='com.offline.tool.managed.sample', SUPPORTED_PLATFORMS='iphoneos iphonesimulator',
+               MARKETING_VERSION=(ROOT / 'VERSION').read_text().strip(), CURRENT_PROJECT_VERSION='1',
                GENERATE_INFOPLIST_FILE='NO', INFOPLIST_FILE='Demo/Info.plist',
-               HEADER_SEARCH_PATHS=['$(inherited)'],
+               HEADER_SEARCH_PATHS=['$(inherited)', '$(SRCROOT)/Demo/Bridge'],
                LD_RUNPATH_SEARCH_PATHS=['$(inherited)', '@executable_path/Frameworks'])),
            buildPhases=[phase('demo.sources', 'PBXSourcesBuildPhase', [obj('demo.src.' + r, 'PBXBuildFile', fileRef=r) for r in demo_refs]),
                phase('demo.frameworks', 'PBXFrameworksBuildPhase', [obj('demo.link.sdk', 'PBXBuildFile', fileRef=framework)]),
-               phase('demo.resources', 'PBXResourcesBuildPhase', [obj('demo.res.' + r, 'PBXBuildFile', fileRef=r) for r in [demo_zip]]),
+               phase('demo.resources', 'PBXResourcesBuildPhase', [obj('demo.res.' + r, 'PBXBuildFile', fileRef=r) for r in [demo_zip] + demo_licenses]),
                obj('demo.embed', 'PBXCopyFilesBuildPhase', buildActionMask=2147483647, dstPath='', dstSubfolderSpec=10,
                    name='Embed SDK', runOnlyForDeploymentPostprocessing=0,
                    files=[obj('demo.embed.sdk', 'PBXBuildFile', fileRef=framework, settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})])],
@@ -129,7 +145,7 @@ products = obj('products', 'PBXGroup', name='Products', sourceTree='<group>', ch
 main = obj('main', 'PBXGroup', sourceTree='<group>', children=[
     obj('sources', 'PBXGroup', name='SDK Sources', sourceTree='<group>', children=source_refs),
     obj('tests.group', 'PBXGroup', name='Tests', sourceTree='<group>', children=test_refs),
-    obj('demo.group', 'PBXGroup', name='Demo', sourceTree='<group>', children=demo_refs + [demo_header, demo_zip]), products])
+    obj('demo.group', 'PBXGroup', name='Demo', sourceTree='<group>', children=demo_refs + demo_headers + [demo_zip] + demo_licenses), products])
 project = obj('project', 'PBXProject', attributes={'LastUpgradeCheck': '1600'}, buildConfigurationList=configurations('project', {}),
               compatibilityVersion='Xcode 14.0', developmentRegion='en', knownRegions=['en', 'Base'],
               mainGroup=main, productRefGroup=products, projectDirPath='', projectRoot='', targets=[sdk, tests, demo])

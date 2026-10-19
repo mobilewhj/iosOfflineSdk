@@ -1,0 +1,9 @@
+{
+  "managed_directory_valid": "b4d30cbf72e6fafed98174012f9bddb4a6f1b94bdde8af4287ab86f76f69bee3",
+  "managed_directory_payload": "c87d510a3f18108312dc8ea8ac81e292c6b5a42b70c37a97adb61eef0ba5d1c6",
+  "managed_directory_inconsistent": "1b8ad82c6b4d05335e1b2fc712146d0dc2347e25171fe0b968c54dc829bfc1c2",
+  "managed_directory_hidden_payload": "2c12f16b0d900a51ebf956515328a9b8ca602ef5914e0218526fa3a2f39055be",
+  "managed_entry_count_limit": "f9c1da73231ce4a39d147295c21a64cf4f27f3b0ae956d7b823fcd92859e577e",
+  "managed_total_size_limit": "24f2ab8b3ff65d6583eb468cf68775672e9596e276851bc6a67b0064c2e41c02",
+  "managed_central_undercount": "816b8bbfac3bd10f2c3c24605345a21b2c0c4036c870e11bb867d92475d244e9"
+}
