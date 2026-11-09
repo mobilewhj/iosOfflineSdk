@@ -17,9 +17,31 @@
 @end
 @interface OFTLifecycleWebView : WKWebView
 @property NSURL *recordedURL;
+@property NSURL *recordedReadAccessURL;
 @end
 @implementation OFTLifecycleWebView
 - (WKNavigation *)loadRequest:(NSURLRequest *)request { self.recordedURL = request.URL; return nil; }
+- (WKNavigation *)loadFileURL:(NSURL *)URL allowingReadAccessToURL:(NSURL *)readAccessURL { self.recordedURL = URL; self.recordedReadAccessURL = readAccessURL; return nil; }
+@end
+@interface OFTUnavailableFileAccessConfiguration : WKWebViewConfiguration
+@end
+@implementation OFTUnavailableFileAccessConfiguration
+- (void)setValue:(id)value forKey:(NSString *)key {
+    if ([key isEqualToString:@"allowUniversalAccessFromFileURLs"]) {
+        @throw [NSException exceptionWithName:NSUndefinedKeyException reason:@"Unavailable file network access" userInfo:nil];
+    }
+    [super setValue:value forKey:key];
+}
+@end
+@interface OFTIgnoredFileAccessConfiguration : WKWebViewConfiguration
+@end
+@implementation OFTIgnoredFileAccessConfiguration
+- (void)setValue:(id)value forKey:(NSString *)key {
+    if (![key isEqualToString:@"allowUniversalAccessFromFileURLs"]) [super setValue:value forKey:key];
+}
+- (id)valueForKey:(NSString *)key {
+    return [key isEqualToString:@"allowUniversalAccessFromFileURLs"] ? @NO : [super valueForKey:key];
+}
 @end
 @interface OFTDelayedSQLiteStorage : OFTManagedStorage
 @property dispatch_semaphore_t gate;
@@ -98,11 +120,202 @@
 - (void)tick { self.sdk.now+=300; [self.sdk checkForUpdates]; [self idle]; }
 - (OFTPageLoadResult *)page {
     WKWebViewConfiguration *configuration=[WKWebViewConfiguration new]; configuration.websiteDataStore=WKWebsiteDataStore.nonPersistentDataStore;
-    OFTPageBinding *binding=[self.sdk pageBindingForConfiguration:configuration scheme:@"lifecycle-test" error:nil];
+    OFTPageBinding *binding=[self.sdk pageBindingForConfiguration:configuration error:nil];
     OFTLifecycleWebView *webView=[[OFTLifecycleWebView alloc] initWithFrame:CGRectZero configuration:configuration];
     XCTestExpectation *done=[self expectationWithDescription:@"page decision"]; __block OFTPageLoadResult *result;
     [self.sdk loadPage:[NSURL URLWithString:@"https://example.com/app/index.html"] inWebView:webView binding:binding completion:^(OFTPageLoadResult *value,NSError *error){ result=value; XCTAssertNil(error); [done fulfill]; }];
     [self waitForExpectations:@[done] timeout:5]; [binding dispose]; return result;
+}
+- (OFTPageLoadResult *)filePage:(NSString *)address view:(OFTLifecycleWebView **)outView {
+    WKWebViewConfiguration *configuration = [WKWebViewConfiguration new];
+    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration error:nil];
+    XCTAssertNotNil(binding);
+    XCTAssertNil([configuration urlSchemeHandlerForURLScheme:@"offline-example"]);
+    OFTLifecycleWebView *view = [[OFTLifecycleWebView alloc] initWithFrame:CGRectZero configuration:configuration];
+    XCTestExpectation *done = [self expectationWithDescription:@"file page decision"]; __block OFTPageLoadResult *result;
+    [self.sdk loadPage:[NSURL URLWithString:address] inWebView:view binding:binding completion:^(OFTPageLoadResult *value, NSError *error) {
+        XCTAssertNil(error); result = value; [done fulfill];
+    }];
+    [self waitForExpectations:@[done] timeout:5];
+    if (outView) *outView = view;
+    [binding dispose]; return result;
+}
+- (void)testFileBindingRequiresNetworkAccessAndPreservesHostConfiguration {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"Binding must not request configuration"); return nil; }];
+    WKWebViewConfiguration *configuration = [WKWebViewConfiguration new];
+    [configuration setValue:@NO forKey:@"allowUniversalAccessFromFileURLs"];
+    WKWebsiteDataStore *store = WKWebsiteDataStore.nonPersistentDataStore;
+    configuration.websiteDataStore = store;
+    WKUserContentController *controller = configuration.userContentController;
+    WKUserScript *script = [[WKUserScript alloc] initWithSource:@"window.hostFixture=true;" injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];
+    [controller addUserScript:script];
+    configuration.preferences.javaScriptCanOpenWindowsAutomatically = YES;
+    NSError *error = nil;
+    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration error:&error];
+    XCTAssertNotNil(binding); XCTAssertNil(error);
+    XCTAssertTrue([[configuration valueForKey:@"allowUniversalAccessFromFileURLs"] boolValue]);
+    XCTAssertEqual(configuration.websiteDataStore, store);
+    XCTAssertEqual(configuration.userContentController, controller);
+    XCTAssertEqualObjects(controller.userScripts, @[script]);
+    XCTAssertTrue(configuration.preferences.javaScriptCanOpenWindowsAutomatically);
+    XCTAssertNil([configuration urlSchemeHandlerForURLScheme:@"offline-example"]);
+    [binding dispose];
+}
+- (void)testFileBindingRejectsUnavailableNetworkAccess {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"Binding must not request configuration"); return nil; }];
+    NSError *error = nil;
+    XCTAssertNil([self.sdk pageBindingForConfiguration:[OFTUnavailableFileAccessConfiguration new] error:&error]);
+    XCTAssertEqual(error.code, OFTOfflineInvalidInput);
+}
+- (void)testFileBindingRejectsIgnoredNetworkAccessSetting {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"Binding must not request configuration"); return nil; }];
+    NSError *error = nil;
+    XCTAssertNil([self.sdk pageBindingForConfiguration:[OFTIgnoredFileAccessConfiguration new] error:&error]);
+    XCTAssertEqual(error.code, OFTOfflineInvalidInput);
+}
+- (void)testFilePageRejectsWebViewConstructedBeforeRequiredConfiguration {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"Invalid page must not request configuration"); return nil; }];
+    WKWebViewConfiguration *configuration = [WKWebViewConfiguration new];
+    [configuration setValue:@NO forKey:@"allowUniversalAccessFromFileURLs"];
+    OFTLifecycleWebView *view = [[OFTLifecycleWebView alloc] initWithFrame:CGRectZero configuration:configuration];
+    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration error:nil];
+    XCTAssertNotNil(binding);
+    XCTAssertFalse([[view.configuration valueForKey:@"allowUniversalAccessFromFileURLs"] boolValue]);
+    XCTestExpectation *done = [self expectationWithDescription:@"Reject incorrectly configured WebView"]; done.assertForOverFulfill = YES;
+    [self.sdk loadPage:[NSURL URLWithString:@"https://example.com/app/"] inWebView:view binding:binding completion:^(OFTPageLoadResult *result, NSError *error) {
+        XCTAssertNil(result); XCTAssertEqual(error.code, OFTOfflineInvalidInput);
+        XCTAssertNil(view.recordedURL); [done fulfill];
+    }];
+    [self waitForExpectations:@[done] timeout:5]; [binding dispose];
+}
+- (void)testFilePageLoadsFixedVersionAndPreservesEncodedQueryAndRoute {
+    [self seed:10000 stage:OFTPackageStageActive]; [self entry:10000 text:@"<html>fixed</html>"];
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"Page selection must not request configuration"); return nil; }];
+    OFTLifecycleWebView *view;
+    OFTPageLoadResult *result = [self filePage:@"https://example.com/app/index.html?value=a%26b#/route?x=%E6%B5%8B" view:&view];
+    XCTAssertTrue(result.offline); XCTAssertEqual(result.record.version, 10000);
+    XCTAssertTrue(view.recordedURL.isFileURL);
+    XCTAssertEqualObjects(view.recordedReadAccessURL.path, [self.root URLByAppendingPathComponent:@"10000"].path);
+    XCTAssertEqualObjects(view.recordedURL.path, [view.recordedReadAccessURL URLByAppendingPathComponent:@"index.html"].path);
+    NSURLComponents *parts = [NSURLComponents componentsWithURL:result.loadedURL resolvingAgainstBaseURL:NO];
+    XCTAssertEqualObjects(parts.percentEncodedQuery, @"value=a%26b");
+    XCTAssertEqualObjects(parts.percentEncodedFragment, @"/route?x=%E6%B5%8B");
+}
+- (void)testFilePageHTTPAndHTTPSUseSamePackageWithoutConfigurationRequest {
+    [self seed:10000 stage:OFTPackageStageActive]; [self entry:10000 text:@"<html>fixed</html>"];
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"No network for page selection"); return nil; }];
+    NSURL *first;
+    for (NSString *scheme in @[@"http", @"https"]) {
+        OFTLifecycleWebView *view;
+        NSString *address = [scheme stringByAppendingString:@"://example.com/app/?q=a%26b#/example/page"];
+        OFTPageLoadResult *result = [self filePage:address view:&view];
+        XCTAssertTrue(result.offline); XCTAssertEqual(result.record.version, 10000);
+        XCTAssertEqualObjects(view.recordedURL.fragment, @"/example/page");
+        XCTAssertEqualObjects([NSURLComponents componentsWithURL:view.recordedURL resolvingAgainstBaseURL:NO].percentEncodedQuery, @"q=a%26b");
+        if (first) XCTAssertEqualObjects(first, view.recordedURL); else first = view.recordedURL;
+    }
+}
+- (void)testFileProtocolAliasBoundaryAndReciprocalRoot {
+    for (NSString *rootScheme in @[@"http", @"https"]) {
+        NSURL *root = [NSURL URLWithString:[rootScheme stringByAppendingString:@"://example.com/app/"]];
+        for (NSString *entry in @[@"http://example.com/app/", @"https://example.com/app/", @"http://example.com:80/app/", @"https://example.com:443/app/"]) {
+            NSURL *url = [NSURL URLWithString:entry];
+            NSURL *effective = [OFTOfflineResourceResolver fileStaticRootForURL:url configuredStaticRoot:root];
+            XCTAssertNotNil(effective); XCTAssertEqualObjects(effective.scheme, url.scheme);
+        }
+        for (NSString *entry in @[@"http://other.example/app/", @"http://example.com/app_other/", @"http://example.com/api/query", @"http://example.com:8080/app/", @"http://user@example.com/app/", @"file:///app/", @"http://example.com/app/../secret"]) {
+            XCTAssertNil([OFTOfflineResourceResolver fileStaticRootForURL:[NSURL URLWithString:entry] configuredStaticRoot:root], @"%@", entry);
+        }
+    }
+    for (NSArray *pair in @[
+        @[@"https://example.com:8080/app/", @"http://example.com:8080/app/"],
+        @[@"https://example.com/app/", @"http://example.com:443/app/"],
+        @[@"http://example.com/app/", @"https://example.com:80/app/"]]) {
+        NSURL *entry = [NSURL URLWithString:pair[1]];
+        NSURL *effective = [OFTOfflineResourceResolver fileStaticRootForURL:entry configuredStaticRoot:[NSURL URLWithString:pair[0]]];
+        XCTAssertNotNil(effective); XCTAssertTrue([OFTOfflineResourceResolver URL:entry isWithinStaticRoot:effective]);
+    }
+    XCTAssertFalse([OFTOfflineResourceResolver URL:[NSURL URLWithString:@"http://example.com/app/"] isWithinStaticRoot:[NSURL URLWithString:@"https://example.com/app/"]]);
+    XCTAssertNil([OFTOfflineResourceResolver fileStaticRootForURL:[NSURL URLWithString:@"http://example.com/app/"] configuredStaticRoot:[NSURL URLWithString:@"https://example.com:8443/app/"]]);
+}
+- (void)testFileHTTPFallbackRetainsOriginalProtocol {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"No network for page selection"); return nil; }];
+    OFTLifecycleWebView *view;
+    NSString *entry = @"http://example.com/app/?q=a%26b#/example/page";
+    OFTPageLoadResult *result = [self filePage:entry view:&view];
+    XCTAssertFalse(result.offline); XCTAssertEqualObjects(view.recordedURL.absoluteString, entry);
+    XCTAssertNil(view.recordedReadAccessURL);
+}
+- (void)testFilePageKeepsAPIAndForeignHostOnline {
+    [self seed:10000 stage:OFTPackageStageActive]; [self entry:10000 text:@"<html>fixed</html>"];
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { return nil; }];
+    for (NSString *address in @[@"https://example.com/api/query", @"https://foreign.example/app/index.html", @"https://example.com/application/index.html", @"https://example.com/app/missing.html"]) {
+        OFTLifecycleWebView *view; OFTPageLoadResult *result = [self filePage:address view:&view];
+        XCTAssertFalse(result.offline); XCTAssertEqualObjects(view.recordedURL.absoluteString, address); XCTAssertNil(view.recordedReadAccessURL);
+    }
+}
+- (void)testFilePageWithoutPackageLoadsOriginalHTTPURL {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { return nil; }];
+    OFTLifecycleWebView *view; OFTPageLoadResult *result = [self filePage:@"https://example.com/app/index.html" view:&view];
+    XCTAssertFalse(result.offline); XCTAssertEqualObjects(view.recordedURL.scheme, @"https"); XCTAssertNil(view.recordedReadAccessURL);
+}
+- (void)testFileBindingPreservesScriptsAndRejectsAnotherWebViewConfiguration {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { return nil; }];
+    WKWebViewConfiguration *configuration = WKWebViewConfiguration.new;
+    WKUserScript *script = [[WKUserScript alloc] initWithSource:@"window.fixture=true" injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];
+    [configuration.userContentController addUserScript:script];
+    WKUserContentController *controller = configuration.userContentController;
+    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration error:nil];
+    XCTAssertEqual(configuration.userContentController, controller);
+    XCTAssertEqualObjects(controller.userScripts, @[script]);
+    OFTLifecycleWebView *other = [[OFTLifecycleWebView alloc] initWithFrame:CGRectZero configuration:WKWebViewConfiguration.new];
+    XCTestExpectation *done = [self expectationWithDescription:@"reject mismatched configuration"];
+    [self.sdk loadPage:[NSURL URLWithString:@"https://example.com/app/"] inWebView:other binding:binding completion:^(OFTPageLoadResult *result, NSError *error) {
+        XCTAssertNil(result); XCTAssertEqual(error.code, OFTOfflineInvalidInput); [done fulfill];
+    }];
+    [self waitForExpectations:@[done] timeout:5]; XCTAssertNil(other.recordedURL); [binding dispose];
+}
+- (void)testDisposedFileBindingNeverLoadsOrRequestsConfiguration {
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { XCTFail(@"Disposed page must not request configuration"); return nil; }];
+    WKWebViewConfiguration *configuration = WKWebViewConfiguration.new;
+    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration error:nil];
+    OFTLifecycleWebView *view = [[OFTLifecycleWebView alloc] initWithFrame:CGRectZero configuration:configuration];
+    [binding dispose]; [binding dispose];
+    XCTestExpectation *done = [self expectationWithDescription:@"reject disposed binding"];
+    [self.sdk loadPage:[NSURL URLWithString:@"https://example.com/app/"] inWebView:view binding:binding completion:^(OFTPageLoadResult *result, NSError *error) {
+        XCTAssertNil(result); XCTAssertEqual(error.code, OFTOfflineInvalidInput); [done fulfill];
+    }];
+    [self waitForExpectations:@[done] timeout:5]; XCTAssertNil(view.recordedURL);
+}
+- (void)testCancelledFileSelectionDoesNotStartWebKitLoad {
+    [self seed:10000 stage:OFTPackageStageActive]; [self entry:10000 text:@"<html>fixed</html>"];
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { return nil; }];
+    WKWebViewConfiguration *configuration = WKWebViewConfiguration.new;
+    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration error:nil];
+    OFTLifecycleWebView *view = [[OFTLifecycleWebView alloc] initWithFrame:CGRectZero configuration:configuration];
+    XCTestExpectation *done = [self expectationWithDescription:@"cancel file selection"];
+    NSProgress *token = [self.sdk loadPage:[NSURL URLWithString:@"https://example.com/app/index.html"] inWebView:view binding:binding completion:^(OFTPageLoadResult *result, NSError *error) {
+        XCTAssertNil(result); XCTAssertEqual(error.code, OFTOfflineCancelled); [done fulfill];
+    }];
+    [token cancel]; [self waitForExpectations:@[done] timeout:5]; XCTAssertNil(view.recordedURL);
+}
+- (void)testExistingActiveBelowNewMinimumRemainsReadableAndReported {
+    [self seed:10000 stage:OFTPackageStageActive]; [self entry:10000 text:@"old valid active"];
+    __block NSInteger reported = -1;
+    self.sdk = [[OFTLifecycleSDK alloc] initWithRootDirectory:self.root originalStaticRoot:[NSURL URLWithString:@"https://example.com/app/"] minimumVersion:20000 checkInterval:300 storage:self.storage versionedConfigurationProvider:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) {
+        reported = version; done(nil, [NSError errorWithDomain:@"fixture" code:1 userInfo:nil]); return nil;
+    } error:nil];
+    self.sdk.now = 1000;
+    XCTAssertTrue([self page].offline);
+    [self.sdk updatePrivacyGranted:YES foreground:YES]; [self prepare]; [self idle];
+    XCTAssertEqual(reported, 10000); XCTAssertTrue([self page].offline);
+}
+- (void)testRemotePackageFragmentDoesNotInvalidateCandidate {
+    NSURLComponents *source = [NSURLComponents componentsWithURL:[self serverStatus:200 body:self.archive declaredExtra:0 retryAfter:nil gate:nil accepted:nil] resolvingAgainstBaseURL:NO];
+    source.fragment = @"download-marker";
+    [self manager:^NSProgress *(NSInteger version, OFTConfigurationCompletion done) { done([self config:10000 URL:source.URL sha:self.sha], nil); return nil; }];
+    [self.sdk updatePrivacyGranted:YES foreground:YES];
+    XCTAssertTrue([self prepare].outcome.success); XCTAssertTrue([self page].offline);
 }
 - (NSURL *)serverStatus:(NSInteger)status body:(NSData *)body declaredExtra:(NSUInteger)extra retryAfter:(NSString *)retry gate:(dispatch_semaphore_t)gate accepted:(XCTestExpectation *)accepted {
     int listener=socket(AF_INET,SOCK_STREAM,0); XCTAssertGreaterThanOrEqual(listener,0);

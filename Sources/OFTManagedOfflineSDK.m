@@ -1,5 +1,4 @@
 #import "OFTManagedOfflineSDK.h"
-#import "OFTOfflineSchemeHandler.h"
 #import "OFTOfflineResourceResolver.h"
 #import "OFTOfflineInternal.h"
 #import <sys/stat.h>
@@ -46,8 +45,8 @@ static BOOL OFTConflict(OFTPackageRecord *a, OFTPackageRecord *b) { return a && 
 - (BOOL)cancellationRequested { return self.cancelled || self.ownerToken.cancelled; }
 @end
 @interface OFTPageBinding ()
-@property (nonatomic,strong,readwrite) OFTOfflineSchemeHandler *handler;
 @property (nonatomic,weak) OFTManagedOfflineSDK *manager;
+@property (nonatomic,strong) WKUserContentController *contentController;
 @property BOOL consumed;
 @property BOOL disposed;
 @property (nonatomic,weak) NSProgress *loadToken;
@@ -55,8 +54,7 @@ static BOOL OFTConflict(OFTPackageRecord *a, OFTPackageRecord *b) { return a && 
 @end
 @implementation OFTPageBinding
 - (instancetype)initPrivate { return [super init]; }
-- (void)dispose { OFTOnMain(^{ self.disposed = YES; [self.loadToken cancel]; [self.handler dispose]; }); }
-- (void)dealloc { [_handler dispose]; }
+- (void)dispose { OFTOnMain(^{ self.disposed = YES; [self.loadToken cancel]; }); }
 @end
 
 @interface OFTManagedOfflineSDK ()
@@ -159,7 +157,7 @@ static BOOL OFTConflict(OFTPackageRecord *a, OFTPackageRecord *b) { return a && 
                 if (current && !token.cancelled) [self.installer cleanupManagedKeeping:kept cancellation:token];
                 OFTOnMain(^{
                     BOOL complete = current && !token.cancelled && !self.closed;
-                    if (complete) { self.active = active; self.activeUsable = usable && active.version >= self.minimumVersion; self.initialized = YES; }
+                    if (complete) { self.active = active; self.activeUsable = usable; self.initialized = YES; }
                     [self finishInitialization:complete];
                 });
             });
@@ -237,7 +235,7 @@ static BOOL OFTConflict(OFTPackageRecord *a, OFTPackageRecord *b) { return a && 
     if (![self mayContinue:update firstCheckpoint:YES]) return;
     OFTPackageRecord *observed = self.active;
     dispatch_async(self.observationQueue,^{
-        BOOL usable = observed && observed.version >= self.minimumVersion && OFTUsableDirectory([self directoryForRecord:observed]);
+        BOOL usable = observed && OFTUsableDirectory([self directoryForRecord:observed]);
         OFTOnMain(^{
             if (![self mayContinue:update firstCheckpoint:YES]) return;
             self.activeUsable = usable;
@@ -296,7 +294,7 @@ static BOOL OFTConflict(OFTPackageRecord *a, OFTPackageRecord *b) { return a && 
     });
 }
 - (BOOL)validSource:(NSURL *)URL {
-    return URL.isFileURL || ([@[@"http",@"https"] containsObject:URL.scheme.lowercaseString] && URL.host.length && !URL.user && !URL.password && !URL.fragment);
+    return URL.isFileURL || ([@[@"http",@"https"] containsObject:URL.scheme.lowercaseString] && URL.host.length && !URL.user && !URL.password);
 }
 - (void)requestDefaultResourceCacheClear {
     [WKWebsiteDataStore.defaultDataStore removeDataOfTypes:[NSSet setWithObjects:WKWebsiteDataTypeMemoryCache,WKWebsiteDataTypeDiskCache,nil] modifiedSince:NSDate.distantPast completionHandler:^{}];
@@ -435,21 +433,40 @@ static BOOL OFTConflict(OFTPackageRecord *a, OFTPackageRecord *b) { return a && 
     dispatch_source_set_timer(self.timer,dispatch_time(DISPATCH_TIME_NOW,(int64_t)((due-now)*NSEC_PER_SEC)),DISPATCH_TIME_FOREVER,50*NSEC_PER_MSEC);
     __weak typeof(self) weakSelf = self; dispatch_source_set_event_handler(self.timer,^{ [weakSelf scheduleSilent]; }); dispatch_resume(self.timer);
 }
-- (OFTPageBinding *)pageBindingForConfiguration:(WKWebViewConfiguration *)configuration scheme:(NSString *)scheme error:(NSError **)error {
-    return [self pageBindingForConfiguration:configuration scheme:scheme networkConfiguration:nil error:error];
-}
-- (OFTPageBinding *)pageBindingForConfiguration:(WKWebViewConfiguration *)configuration scheme:(NSString *)scheme networkConfiguration:(NSURLSessionConfiguration *)networkConfiguration error:(NSError **)error {
-    if (!NSThread.isMainThread || self.closed || !configuration || [configuration urlSchemeHandlerForURLScheme:scheme]) { if (error) *error = OFTError(OFTOfflineInvalidInput,@"page",@"Invalid page configuration",nil); return nil; }
-    __weak typeof(self) weakSelf = self;
-    OFTOfflineSchemeHandler *handler = [OFTOfflineSchemeHandler managedHandlerWithScheme:scheme originalStaticRoot:self.staticRoot enabledProvider:^BOOL{ return weakSelf && weakSelf.resourceEnabled; } networkConfiguration:networkConfiguration error:error];
-    if (!handler) return nil; [configuration setURLSchemeHandler:handler forURLScheme:scheme];
-    OFTPageBinding *binding = [[OFTPageBinding alloc] initPrivate]; binding.handler = handler; binding.manager = self; return binding;
+- (OFTPageBinding *)pageBindingForConfiguration:(WKWebViewConfiguration *)configuration error:(NSError **)error {
+    if (!NSThread.isMainThread || self.closed || !configuration) {
+        if (error) *error = OFTError(OFTOfflineInvalidInput,@"page",@"Invalid page configuration",nil);
+        return nil;
+    }
+    // Required by the file-only integration: keep H5 HTTP(S) requests unchanged.
+    // This private WebKit setting must be applied before WKWebView construction.
+    @try {
+        [configuration setValue:@YES forKey:@"allowUniversalAccessFromFileURLs"];
+        if (![[configuration valueForKey:@"allowUniversalAccessFromFileURLs"] boolValue]) {
+            if (error) *error = OFTError(OFTOfflineInvalidInput,@"page",@"Required file network access unavailable",nil);
+            return nil;
+        }
+    } @catch (__unused NSException *exception) {
+        if (error) *error = OFTError(OFTOfflineInvalidInput,@"page",@"Required file network access unavailable",nil);
+        return nil;
+    }
+    OFTPageBinding *binding = [[OFTPageBinding alloc] initPrivate];
+    binding.contentController = configuration.userContentController; binding.manager = self;
+    return binding;
 }
 - (NSProgress *)loadPage:(NSURL *)URL inWebView:(WKWebView *)webView binding:(OFTPageBinding *)binding completion:(void (^)(OFTPageLoadResult *,NSError *))completion {
     NSProgress *token = [NSProgress progressWithTotalUnitCount:1];
     OFTOnMain(^{
-        if (self.closed || binding.manager != self || binding.consumed || binding.disposed || !webView || !URL || [webView.configuration urlSchemeHandlerForURLScheme:binding.handler.scheme] != binding.handler || ![@[@"http",@"https"] containsObject:URL.scheme.lowercaseString]) {
+        BOOL matchingConfiguration = webView.configuration.userContentController == binding.contentController;
+        if (self.closed || binding.manager != self || binding.consumed || binding.disposed || !webView || !URL || !matchingConfiguration || ![@[@"http",@"https"] containsObject:URL.scheme.lowercaseString]) {
             @try { if (completion) completion(nil,OFTError(OFTOfflineInvalidInput,@"page",@"Invalid page entry",nil)); } @catch (__unused NSException *e) { } return;
+        }
+        BOOL fileNetworkAccess = NO;
+        @try { fileNetworkAccess = [[webView.configuration valueForKey:@"allowUniversalAccessFromFileURLs"] boolValue]; }
+        @catch (__unused NSException *e) { }
+        if (!fileNetworkAccess) {
+            @try { if (completion) completion(nil,OFTError(OFTOfflineInvalidInput,@"page",@"Required file network access unavailable",nil)); } @catch (__unused NSException *e) { }
+            return;
         }
         binding.consumed = YES; binding.loadToken = token;
         [self ensureInitialized:^(BOOL complete) {
@@ -457,14 +474,22 @@ static BOOL OFTConflict(OFTPackageRecord *a, OFTPackageRecord *b) { return a && 
             OFTPackageRecord *record = complete ? self.active : nil; NSURL *directory = [self directoryForRecord:record];
             dispatch_async(self.observationQueue,^{
                 BOOL usable = record && OFTUsableDirectory(directory);
-                if (usable) { OFTOfflineResourceResolver *resolver = [[OFTOfflineResourceResolver alloc] initWithDirectory:directory baseURL:self.staticRoot]; usable = [resolver resourceForRequest:[NSURLRequest requestWithURL:URL]] != nil; }
+                OFTOfflineResource *resource = nil;
+                NSURL *resolutionRoot = [OFTOfflineResourceResolver fileStaticRootForURL:URL configuredStaticRoot:self.staticRoot];
+                if (usable) { OFTOfflineResourceResolver *resolver = resolutionRoot ? [[OFTOfflineResourceResolver alloc] initWithDirectory:directory baseURL:resolutionRoot] : nil; resource = [resolver resourceForRequest:[NSURLRequest requestWithURL:URL]]; usable = resource != nil; }
                 OFTOnMain(^{
                     if (token.cancelled || binding.disposed || self.closed) { [self finishPageCancelled:completion]; return; }
-                    BOOL qualified = usable && record.version >= self.minimumVersion && self.initialized && self.active == record && self.resourceEnabled &&
+                    BOOL qualified = usable && self.initialized && self.active == record && self.resourceEnabled &&
                         (!self.sawConfiguration || (self.onlineVersion == record.version && (!self.onlineSHA || [self.onlineSHA isEqual:record.sha256])));
                     NSURL *loadURL = URL; OFTPackageRecord *bound = nil;
-                    if (qualified) { NSURL *mapped = [binding.handler offlineURLForOriginalURL:URL]; if (mapped && [self.installer markManagedRootPageBound] && [binding.handler bindDirectory:directory entryFile:@"index.html" error:nil]) { loadURL = mapped; bound = record; } }
-                    [webView loadRequest:[NSURLRequest requestWithURL:loadURL cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:60]];
+                    if (qualified) {
+                        NSURLComponents *file = [NSURLComponents componentsWithURL:resource.fileURL resolvingAgainstBaseURL:NO];
+                        NSURLComponents *original = [NSURLComponents componentsWithURL:URL resolvingAgainstBaseURL:NO];
+                        file.percentEncodedQuery = original.percentEncodedQuery; file.percentEncodedFragment = original.percentEncodedFragment;
+                        if (file.URL && [self.installer markManagedRootPageBound]) { loadURL = file.URL; bound = record; }
+                    }
+                    if (bound) [webView loadFileURL:loadURL allowingReadAccessToURL:directory];
+                    else [webView loadRequest:[NSURLRequest requestWithURL:loadURL cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:60]];
                     @try { if (completion) completion([[OFTPageLoadResult alloc] initWithURL:loadURL record:bound],nil); } @catch (__unused NSException *e) { }
                 });
             });

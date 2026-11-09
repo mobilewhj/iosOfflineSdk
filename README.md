@@ -1,6 +1,6 @@
 # iOS 离线包 SDK
 
-当前源码提供 iOS 15+ 原生托管离线管理器和 WKURLSchemeHandler，公开入口可由 Objective-C / Swift 使用。SDK 管理首次准备、默认持久存储、条件驱动静默检查、单表生命周期、内存重试额度、冷启动启用和固定页面资源。App 提供配置 provider、隐私/前后台事实、业务 UI、导航和登录适配。
+当前源码提供 iOS 15+ 原生托管离线管理器，离线页面统一通过 `loadFileURL` 加载，公开入口可由 Objective-C / Swift 使用。SDK 管理首次准备、默认持久存储、条件驱动静默检查、单表生命周期、内存重试额度、冷启动启用和固定页面资源。App 提供配置 provider、隐私/前后台事实、业务 UI、导航和登录适配。
 
 当前版本为 **0.3.1**，最低 iOS 15，通过 GitHub Releases 的 XCFramework 与 Swift Package Manager 分发。最短接入与平台边界见 [托管接入](docs/MANAGED-INTEGRATION.md)。发布包、SPM ZIP 和 Package.swift 必须对应同一版本与最终校验值；历史本地候选不属于正式发布。
 
@@ -13,7 +13,7 @@
 | Demo 应用标识 | `com.offline.tool.sample` | `com.offline.tool.sample` | `com.offline.tool.managed.sample` |
 | iOS 测试标识 | — | — | `com.offline.tool.tests` |
 
-iOS 没有与 Java/Kotlin 包名完全相同的概念，Bundle Identifier 是库或应用的标识，代码仍通过 `#import <OfflineTool/OfflineTool.h>` 导入。SDK 错误域为 `com.offline.tool`，内部队列使用该前缀；这些标识不是网络地址。它们沿用独立 Android SDK 的命名，不包含原业务公司的域名，也不与个人 GitHub 账号绑定。
+iOS 没有与 Java/Kotlin 包名完全相同的概念，Bundle Identifier 是库或应用的标识，代码仍通过 `#import <OfflineTool/OfflineTool.h>` 导入。SDK 错误域为 `com.offline.tool`，内部队列使用该前缀；这些标识不是网络地址。它们沿用独立 Android SDK 的命名，不与具体宿主或个人 GitHub 账号绑定。
 
 ## 工程与运行
 
@@ -34,11 +34,13 @@ Demo 由应用入口持有同一个 `OFTManagedOfflineSDK`，启动页只显示 
 
 ## 0.3.1 远程依赖
 
+2026-11-09 测试阶段按维护者明确要求刷新同版本 `0.3.1`，统一为 `loadFileURL`：`pageBindingForConfiguration:error:` 不再接受 scheme 或静态回源网络配置，已移除自定义协议 handler。绑定时必需开启 `allowUniversalAccessFromFileURLs`，不再提供诊断编译开关；这是私有 WebKit 设置，未承诺 App Store 审核兼容。HTTP(S) API 由 H5 直接请求，正文、参数和自定义鉴权头不改写；接入见 [file 加载](docs/FILE-LOADING.md)。旧 scheme 调用方必须适配新接口；同版本更新需重新解析 tag 提交与二进制 checksum，见 [SPM 更新说明](docs/SPM.md#测试阶段同版本刷新2026-11-09)。
+
 Objective-C 和 Swift 项目均可使用，不需要将业务代码改写成 Swift。
 
 1. Xcode → File → Add Package Dependencies，输入 `https://github.com/mobilewhj/iosOfflineSdk`。
 2. 选择 Exact Version `0.3.1`，将产品 `OfflineTool` 添加到业务 App Target。
-3. 移除手动添加的旧 `OfflineTool.xcframework` / `SLCOfflineSDK.xcframework` 链接及嵌入项，避免重复引用。保留业务 App 自己的 Bundle ID。
+3. 移除手动添加的旧 `OfflineTool.xcframework` 或历史同功能 Framework 链接及嵌入项，避免重复引用。保留业务 App 自己的 Bundle ID。
 4. Objective-C 使用 `#import <OfflineTool/OfflineTool.h>`；Swift 使用 `import OfflineTool`。无需为这个模块增加桥接头。
 5. Xcode 自动下载并校验二进制。若工程有自定义 Framework 架构裁剪脚本，请跳过 `OfflineTool`；已有 Swift 标准库嵌入配置继续保留。
 
@@ -72,7 +74,6 @@ NSProgress *job = [installer installRecord:candidate fromURL:downloadURL
 | `clearOldVersionsKeeping:completion:` | 冷启动且无绑定页面时清理；缺失/空的保留入口拒绝清理 |
 | `discardUnboundVersion:completion:` | 宿主确认未交付页面后，移除指定版本残留 |
 | `OFTOfflineResourceResolver` | 原 HTTP(S) URL → 固定目录内的本地资源描述 |
-| `OFTOfflineSchemeHandler` | 可选 WKWebView 自定义协议适配；不拦截 HTTP(S)，不回源或代理业务接口 |
 
 根目录由宿主提供，建议位于 Application Support，安装器排除备份。正式目录为 `<root>/<version>/index.html`；接受 ZIP 根目录或 `dist/index.html`，发布时归一化。SDK 只校验版本 >= 10000；业务可执行更高下限。`PackageRecord` 只有 version/sha256。
 
@@ -80,23 +81,11 @@ NSProgress *job = [installer installRecord:candidate fromURL:downloadURL
 
 下载支持 HTTP(S) 的完整 200 响应，拒绝跨协议重定向，120 秒总时限；生产 URL 应由可信 HTTPS 配置提供。ZIP 和单文件各限 64 MiB，总解压 256 MiB，最多 10000 条目；校验整包 SHA-256 和条目 CRC，拒绝越界路径、符号链接、路径别名、重复/冲突和不完整归档。SHA-256 必须来自可信配置；它本身不证明发布者身份。
 
-## 旧低层 WKWebView 接入（默认无回源）
+## WKWebView 加载
 
-```objc
-OFTOfflineSchemeHandler *handler = [[OFTOfflineSchemeHandler alloc]
-    initWithDirectory:installedDirectory
-    baseURL:[NSURL URLWithString:@"https://example.com/app/"]
-    scheme:@"app-offline"];
-WKWebViewConfiguration *configuration = [WKWebViewConfiguration new];
-[configuration setURLSchemeHandler:handler forURLScheme:handler.scheme];
-WKWebView *webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:configuration];
-NSURL *entry = [handler offlineURLForURL:[NSURL URLWithString:@"https://example.com/app/index.html#/home"]];
-if (entry) [webView loadRequest:[NSURLRequest requestWithURL:entry]];
-```
+使用 `OFTManagedOfflineSDK` 的 `pageBindingForConfiguration:error:` 和 `loadPage:inWebView:binding:completion:`。SDK 先校验当前 active 版本、配置资格和入口，再调用 `loadFileURL:allowingReadAccessToURL:`，只授权版本目录。没有合格离线入口时加载原始 HTTP(S) 地址。
 
-创建/使用 WebKit 对象遵循主线程规则。每个 WebView 使用自己的 handler，生命周期内不切换目录。仅允许匹配的 host、port、路径前缀、GET 和无 Range 的静态文件；query/hash 原样保留但不参与文件定位。找不到资源则失败，不进行隐式网络回源；响应不添加 CORS 通配头。后台读取文件，响应回主线程，WebKit 取消后停止回调。
-
-自定义协议会改变网页 origin。API HTTPS 地址、身份注入、Cookie/存储迁移、CORS 和导航白名单由宿主与 H5 共同处理。**发布此 SDK 不等于任意已有 H5 可以零修改离线运行。** 详见 [接入边界](docs/INTEGRATION.md)。
+自定义协议类、注册入口和逐资源网络回源已删除。原安装器和资源映射器仍可独立使用；业务宿主应使用托管入口，避免维护第二套选版逻辑。文件页面固定原版本，缺失 JS/CSS 等资源由 WebKit 报错。HTTP(S) API、身份传递、CORS 和导航由宿主/H5/网关各自负责，见 [接入边界](docs/INTEGRATION.md)。
 
 ## 本地构建与正式制品
 
@@ -114,7 +103,7 @@ xcodebuild -project OfflineTool.xcodeproj -scheme OfflineToolDemo \
 bash scripts/build_release.sh
 ```
 
-`build_release.sh` 从当前 VERSION 归档 device/simulator、创建 XCFramework、生成手动安装 ZIP 和根目录直接含 XCFramework 的 SPM ZIP，再由 `generate_package.py` 对确切 SPM ZIP 计算 checksum 并更新 Package.swift。已有工作目录或制品时脚本拒绝覆盖；需要重试时使用新的 `OFT_RELEASE_WORK_DIRECTORY` / `OFT_RELEASE_OUTPUT_ROOT`。Release 编译映射源路径并检查最终框架内没有本机私有绝对路径或候选元数据。新发布使用新版本/tag，不移动旧 tag 或替换旧附件。详见 [SPM 接入与发布](docs/SPM.md)。
+`build_release.sh` 从当前 VERSION 归档 device/simulator、创建 XCFramework、生成手动安装 ZIP 和根目录直接含 XCFramework 的 SPM ZIP，再由 `generate_package.py` 对确切 SPM ZIP 计算 checksum 并更新 Package.swift。已有工作目录或制品时脚本拒绝覆盖；需要重试时使用新的 `OFT_RELEASE_WORK_DIRECTORY` / `OFT_RELEASE_OUTPUT_ROOT`。Release 编译映射源路径并检查最终框架内没有本机私有绝对路径或候选元数据；两个 Framework 切片均声明 `OFTFileUniversalAccessRequired=true`。常规发布使用新版本/tag；本次测试阶段同版本刷新的明确例外及更新步骤见 [SPM 接入与发布](docs/SPM.md)。
 
 `generate_consumer.py --framework <最终XCFramework> --output <新目录>` 创建只链接指定二进制的独立 Objective-C 消费工程。`create_local_candidate.py --evidence <私有验证目录>` 仍可生成不可覆盖的 `dist/OfflineTool-managed-<identity>`；候选营销版本为 0.0.0，包含 OFTLocalCandidateIdentity，不能作为正式 0.3.1 制品发布。私有验证、构建输出及本地签名文件不属于公开提交清单。
 

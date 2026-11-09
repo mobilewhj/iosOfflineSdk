@@ -9,7 +9,7 @@ let package = Package(
         .binaryTarget(
             name: "OfflineTool",
             url: "https://github.com/mobilewhj/iosOfflineSdk/releases/download/v0.3.1/OfflineTool-0.3.1.xcframework.zip",
-            checksum: "524cafcf4dbeadc33d92dfdbf84b159ef698ff9521d19a6c83bf5b4d16c88e35"
+            checksum: "d75250af56a9c5c122672420c3729858af9b58996102bc313aa4affdc2a1fc9d"
         )
     ]
 )

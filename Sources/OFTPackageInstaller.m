@@ -194,7 +194,7 @@ static NSURL *OFTCanonicalRoot(NSURL *input) {
     NSString *stage = @"prepare";
     if (![record isKindOfClass:OFTPackageRecord.class] ||
         ![[OFTPackageRecord alloc] initWithVersion:record.version sha256:record.sha256] || !source ||
-        (remote && (![@[@"http", @"https"] containsObject:source.scheme.lowercaseString] || !source.host.length || source.user || source.password || source.fragment)) ||
+        (remote && (![@[@"http", @"https"] containsObject:source.scheme.lowercaseString] || !source.host.length || source.user || source.password)) ||
         (!remote && !source.isFileURL)) {
         *error = OFTError(OFTOfflineInvalidInput, stage, @"资源包参数无效", nil); return nil;
     }

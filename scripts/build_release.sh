@@ -25,6 +25,15 @@ for sdk_platform in device simulator; do
     > "$sdk_work/$sdk_platform-strip.log" 2>&1 || {
       cat "$sdk_work/$sdk_platform-strip.log"; exit 1;
     }
+  # File network access is required by this SDK in formal and local builds alike.
+  python3 - "$sdk_work/$sdk_platform.xcarchive/Products/Library/Frameworks/OfflineTool.framework/Info.plist" <<'FILE_ACCESS_METADATA'
+import plistlib,sys
+from pathlib import Path
+info=Path(sys.argv[1])
+metadata=plistlib.loads(info.read_bytes())
+metadata['OFTFileUniversalAccessRequired']=True
+info.write_bytes(plistlib.dumps(metadata))
+FILE_ACCESS_METADATA
 done
 xcodebuild -create-xcframework \
   -framework "$sdk_work/device.xcarchive/Products/Library/Frameworks/OfflineTool.framework" \
@@ -46,6 +55,8 @@ for file in framework.rglob('*'):
         info=plistlib.loads(data)
         if any(key.startswith('OFTLocalCandidate') for key in info):
             raise SystemExit('Local candidate metadata in formal framework')
+        if file.parent.name == 'OfflineTool.framework' and info.get('OFTFileUniversalAccessRequired') is not True:
+            raise SystemExit('Missing required file network access metadata in '+str(file.relative_to(framework)))
 CHECK_PATHS
 cp "$sdk_root/CHANGELOG.md" "$sdk_root/LICENSE" "$sdk_root/THIRD_PARTY_NOTICES.md" "$sdk_root/README.md" "$sdk_root/VERSION" "$sdk_package/"
 mkdir -p "$sdk_package/docs"

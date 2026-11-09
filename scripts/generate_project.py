@@ -61,7 +61,7 @@ def configurations(key, extra):
 
 sources, headers, source_refs = [], [], []
 public_headers = {'OfflineTool.h', 'OFTPackageInstaller.h', 'OFTOfflineResourceResolver.h',
-                  'OFTOfflineSchemeHandler.h', 'OFTManagedTypes.h', 'OFTManagedStorage.h',
+                  'OFTManagedTypes.h', 'OFTManagedStorage.h',
                   'OFTManagedOfflineSDK.h'}
 for path in sorted(list((ROOT / 'Sources').glob('*')) + list((ROOT / 'Vendor/ZIPFoundation/Sources').glob('*.swift'))):
     if path.suffix not in {'.h', '.m', '.swift'}:
@@ -123,6 +123,7 @@ demo_refs = [file(p.relative_to(ROOT).as_posix(), 'sourcecode.c.objc')
 demo_headers = [file(p.relative_to(ROOT).as_posix(), 'sourcecode.c.h')
                 for p in sorted((ROOT / 'Demo').rglob('*.h'))]
 demo_zip = file('Demo/Resources/demo.zip', 'archive.zip')
+file_probe_zip = file('Demo/Resources/file-probe.zip', 'archive.zip')
 demo_licenses = [file(p.relative_to(ROOT).as_posix(), 'text')
                  for p in (ROOT / 'Demo/Bridge/LICENSE.txt', ROOT / 'Demo/Bridge/COPYRIGHT') if p.exists()]
 demo_product = obj('product:demo', 'PBXFileReference', path='OfflineToolDemo.app', explicitFileType='wrapper.application', sourceTree='BUILT_PRODUCTS_DIR')
@@ -136,7 +137,7 @@ demo = obj('target:demo', 'PBXNativeTarget', name='OfflineToolDemo', productName
                LD_RUNPATH_SEARCH_PATHS=['$(inherited)', '@executable_path/Frameworks'])),
            buildPhases=[phase('demo.sources', 'PBXSourcesBuildPhase', [obj('demo.src.' + r, 'PBXBuildFile', fileRef=r) for r in demo_refs]),
                phase('demo.frameworks', 'PBXFrameworksBuildPhase', [obj('demo.link.sdk', 'PBXBuildFile', fileRef=framework)]),
-               phase('demo.resources', 'PBXResourcesBuildPhase', [obj('demo.res.' + r, 'PBXBuildFile', fileRef=r) for r in [demo_zip] + demo_licenses]),
+               phase('demo.resources', 'PBXResourcesBuildPhase', [obj('demo.res.' + r, 'PBXBuildFile', fileRef=r) for r in [demo_zip, file_probe_zip] + demo_licenses]),
                obj('demo.embed', 'PBXCopyFilesBuildPhase', buildActionMask=2147483647, dstPath='', dstSubfolderSpec=10,
                    name='Embed SDK', runOnlyForDeploymentPostprocessing=0,
                    files=[obj('demo.embed.sdk', 'PBXBuildFile', fileRef=framework, settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})])],
@@ -145,7 +146,7 @@ products = obj('products', 'PBXGroup', name='Products', sourceTree='<group>', ch
 main = obj('main', 'PBXGroup', sourceTree='<group>', children=[
     obj('sources', 'PBXGroup', name='SDK Sources', sourceTree='<group>', children=source_refs),
     obj('tests.group', 'PBXGroup', name='Tests', sourceTree='<group>', children=test_refs),
-    obj('demo.group', 'PBXGroup', name='Demo', sourceTree='<group>', children=demo_refs + demo_headers + [demo_zip] + demo_licenses), products])
+    obj('demo.group', 'PBXGroup', name='Demo', sourceTree='<group>', children=demo_refs + demo_headers + [demo_zip, file_probe_zip] + demo_licenses), products])
 project = obj('project', 'PBXProject', attributes={'LastUpgradeCheck': '1600'}, buildConfigurationList=configurations('project', {}),
               compatibilityVersion='Xcode 14.0', developmentRegion='en', knownRegions=['en', 'Base'],
               mainGroup=main, productRefGroup=products, projectDirPath='', projectRoot='', targets=[sdk, tests, demo])

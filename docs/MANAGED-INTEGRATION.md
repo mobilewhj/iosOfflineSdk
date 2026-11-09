@@ -61,7 +61,9 @@ Retry quota is memory-only per version+SHA. Transfer/timeout and HTTP 408/429/50
 
 ## Policy, cache and page binding
 
-Online policy is memory-only: unknown, forced online or known version/SHA. Configuration failure/invalidity and candidate-record read failure preserve the previous policy, cache and attempt facts. Identity conflicts are rejected before eviction or file deletion. A new page can use a readable fixed active package only under unknown or matching policy. Existing pages retain their bound directory; forced online stops subsequent local resource decisions without refreshing the page.
+The 2026-11-09 testing refresh of 0.3.1 uses `loadFileURL` exclusively. The binding factory is `pageBindingForConfiguration:error:`; custom-scheme handlers, scheme selection and per-resource network fallback have been removed. Binding requires the private WebKit `allowUniversalAccessFromFileURLs` setting before constructing the WebView; unavailable or ignored settings fail binding. HTTP(S) API requests remain H5 XHR/fetch with unchanged business bodies and custom headers. For gateways limited to GET/POST/HEAD, validate zero preflight on actual target systems. Hosts using the earlier 0.3.1 scheme API must update their binding calls and resolve the refreshed tag and binary checksum. See [file loading](FILE-LOADING.md) and [SPM refresh](SPM.md).
+
+Online policy is memory-only: unknown, forced online or known version/SHA. Configuration failure/invalidity and candidate-record read failure preserve the previous policy, cache and attempt facts. Identity conflicts are rejected before eviction or file deletion. A new page can use a readable fixed active package only under unknown or matching policy. Existing file pages retain their bound directory/read scope; forced online affects later page selection. Closing an already loaded page remains the host responsibility.
 
 For a silent higher target with an active package, SDK order is policy update → synchronous cache-removal request → preparation. The request happens at most once for that target in the process, even if the cleaner throws. There is no page-time/persistent dirty cache ledger. resourceCacheCleaner may be supplied by the host; nil requests only WKWebsiteDataTypeMemoryCache and WKWebsiteDataTypeDiskCache removal on the default data store. Hosts using a different WK data store must target that store. The SDK continues without awaiting disk removal and does not claim actual disk completion. Cookie, localStorage, login and business data must be retained.
 
@@ -69,7 +71,7 @@ For a silent higher target with an active package, SDK order is policy update �
 WKWebViewConfiguration *configuration = [WKWebViewConfiguration new];
 // Preserve the host's original content controller, scripts, Cookie/Bridge and delegates.
 OFTPageBinding *binding = [self.offlineSDK pageBindingForConfiguration:configuration
-    scheme:@"app-offline" error:&error];
+    error:&error];
 WKWebView *webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:configuration];
 self.pageJob = [self.offlineSDK loadPage:originalURL inWebView:webView binding:binding
     completion:^(OFTPageLoadResult *result, NSError *failure) {
@@ -78,9 +80,9 @@ self.pageJob = [self.offlineSDK loadPage:originalURL inWebView:webView binding:b
 // At actual page closure: [self.pageJob cancel]; [binding dispose];
 ```
 
-A binding follows the same WKWebView through reload/external navigation/back. Do not call loadPage again to switch that page's version. Keep identity injection restricted to the exact managed main-document root; suspend it for external documents and restore current identity when returning to the managed root. The custom scheme is not the original HTTP(S) origin. Existing H5 adapters must explicitly retain original HTTP(S) API identity, authenticated state, Cookie coordination, Bridge and navigation behavior.
+A binding follows the same WKWebView through reload/external navigation/back. Do not call loadPage again to switch that page's version. Keep identity injection restricted to the exact managed main-document root; suspend it for external documents and restore current identity when returning to the managed root. The file document is not the original HTTP(S) origin. Existing H5 adapters must explicitly retain original HTTP(S) API identity, authenticated state, Cookie coordination, Bridge and navigation behavior.
 
-The handler maps only exact original static-root GET requests. Missing/read-failed/Range/disabled resources fall back to that original HTTP(S) URL, keeping query, headers, real status, MIME and bytes. It does not proxy business POST/API or foreign navigation. Default fallback uses no Cookie/credential stores or URLCache; authenticated static resources require explicit controlled networkConfiguration and host WK Cookie coordination. No CORS/CSP/TLS/ATS weakening is provided. Per-task cancellation and disposal reject late callbacks and produce at most one terminal event.
+The SDK resolves the entry under the configured static root, preserves query/hash and grants WebKit access only to the selected version directory. Relative static resources are read by WebKit. There is no native resource/API proxy or transparent fallback for missing subresources. Missing/unqualified entry falls back to its original HTTP(S) URL before loading; already loaded file pages do not silently switch version or origin. No CORS/CSP/TLS/ATS weakening is provided.
 
 ## Installation statistics and validation
 

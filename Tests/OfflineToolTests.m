@@ -181,6 +181,9 @@
     NSMutableURLRequest *range = request.mutableCopy; [range setValue:@"bytes=0-2" forHTTPHeaderField:@"Range"]; XCTAssertNil([resolver resourceForRequest:range]);
     OFTOfflineResource *font = [resolver resourceForRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"https://example.com/app/font.woff2"]]];
     XCTAssertEqualObjects(font.MIMEType, @"font/woff2"); XCTAssertNil(font.textEncodingName);
+    [@"opaque bytes" writeToURL:[a URLByAppendingPathComponent:@"resource.custom"] atomically:NO encoding:NSUTF8StringEncoding error:nil];
+    OFTOfflineResource *opaque = [resolver resourceForRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"https://example.com/app/resource.custom"]]];
+    XCTAssertNotNil(opaque); XCTAssertEqualObjects(opaque.MIMEType, @"application/octet-stream");
 }
 - (void)testArchiveLimitsUseTooLargeAndPreserveExistingVersion {
     NSError *error;

@@ -64,8 +64,8 @@
     const range = await request('range.txt?case=range', {Range:'bytes=0-3'});
     report.range206 = range.status === 206 && range.text === '0123'; report.rangeStatus = range.status; report.rangeHeader = range.range;
     const api = await request(bootstrap.apiBase + '/api/echo', {
-      'Content-Type':'application/json', 'X-AUTH-TOKEN':'synthetic-token', 'X-APP_VERSION':'synthetic-version',
-      'X-APP-PLAT':'iOS', 'CONTAINER':'H5', 'X-THIRD-TOKEN':'synthetic-third', 'CHANNEL':'synthetic-channel'
+      'Content-Type':'application/json', 'X-Probe-Token':'synthetic-token', 'X-Probe-Version':'synthetic-version',
+      'X-Probe-Platform':'iOS', 'X-Probe-Container':'H5', 'X-Probe-Session':'synthetic-third', 'X-Probe-Channel':'synthetic-channel'
     }, 'POST', JSON.stringify({requestId:'isolated-test', message:'synthetic'}));
     report.apiPOST = api.status === 200 && JSON.parse(api.text || '{}').accepted === true; report.apiStatus = api.status;
     await bridgeReady;

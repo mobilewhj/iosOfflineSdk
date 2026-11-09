@@ -19,7 +19,7 @@ STATE = {'version': 'A', 'disabled': False, 'failure': False, 'wrongSHA': False,
 ARGS = None
 
 def allowed_origins():
-    return {'null', 'http://127.0.0.1:' + str(ARGS.port), 'offline-managed://127.0.0.1:' + str(ARGS.port)}
+    return {'null', 'http://127.0.0.1:' + str(ARGS.port)}
 
 def event(kind, **fields):
     row = dict(event=kind, monotonic=time.monotonic(), utc=datetime.now(timezone.utc).isoformat(), **fields)
@@ -63,7 +63,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send('{}', 404); return
         names = [value.strip().lower() for value in self.headers.get('Access-Control-Request-Headers', '').split(',') if value]
         event('api-preflight', origin=self.headers.get('Origin') if self.headers.get('Origin') in allowed_origins() else 'unexpected', method=self.headers.get('Access-Control-Request-Method'), header_names=names)
-        self.send('', 204, extra={'Access-Control-Allow-Methods':'POST', 'Access-Control-Allow-Headers':'Content-Type, X-AUTH-TOKEN, X-APP_VERSION, X-APP-PLAT, CONTAINER, X-THIRD-TOKEN, CHANNEL'})
+        self.send('', 204, extra={'Access-Control-Allow-Methods':'POST', 'Access-Control-Allow-Headers':'Content-Type, X-Probe-Token, X-Probe-Version, X-Probe-Platform, X-Probe-Container, X-Probe-Session, X-Probe-Channel'})
     def do_POST(self):
         path = urlsplit(self.path).path
         try:
@@ -87,9 +87,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send(json.dumps(snapshot)); return
         if path != '/api/echo':
             self.send('{}', 404); return
-        expected = ['X-AUTH-TOKEN', 'X-APP_VERSION', 'X-APP-PLAT', 'CONTAINER', 'X-THIRD-TOKEN', 'CHANNEL']
+        expected = ['X-Probe-Token', 'X-Probe-Version', 'X-Probe-Platform', 'X-Probe-Container', 'X-Probe-Session', 'X-Probe-Channel']
         observed = [name for name in expected if self.headers.get(name)]
-        container = 'H5' if self.headers.get('CONTAINER') == 'H5' else 'unexpected'
+        container = 'H5' if self.headers.get('X-Probe-Container') == 'H5' else 'unexpected'
         accepted = len(observed) == len(expected) and container == 'H5' and body.get('requestId') == 'isolated-test'
         event('api-post', origin=self.headers.get('Origin') if self.headers.get('Origin') in allowed_origins() else 'unexpected', header_names=observed, container=container, accepted=accepted, body_shape_valid=body.get('requestId') == 'isolated-test')
         self.send(json.dumps({'accepted':accepted, 'requestId':'isolated-test'}))

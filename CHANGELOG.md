@@ -2,6 +2,16 @@
 
 ## 0.3.1
 
+### 2026-11-09 测试阶段同版本刷新
+
+- 按维护者要求保留版本号，刷新 v0.3.1 源码、二进制和 SPM checksum。
+- 离线页面统一 loadFileURL，绑定接口改为 pageBindingForConfiguration:error:，移除自定义协议与逐资源回源。
+- 文件网络访问设置在创建 WKWebView 前必需开启并确认，实际加载再次核对配置；Framework 声明 OFTFileUniversalAccessRequired。
+- 对齐 Android 的有效端口、既有 active 最低版本资格、未知扩展名及下载 URL fragment 边界；下载校验、安装、更新、取消及 H5 业务请求职责保持。
+- 保留原版本目录读取和旧页面生命周期。旧 0.3.1 调用方须适配新页面接口并重新解析依赖，详见 docs/SPM.md。
+
+### 首次发布
+
 - 新增 iOS15+ 托管离线生命周期、SQLite事务状态与固定进程/页面版本。
 - SDK统一首次准备、静默调度、取消和重试；配置、业务门和身份适配继续由宿主提供。
 - ready确认后发准备成功，保留真实处理失败分类；修复查询损坏隔离和必要ZIP输出关闭错误。

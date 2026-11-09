@@ -1,12 +1,12 @@
 {
   "A": {
     "version": 10000,
-    "sha256": "daf909409a96ba63d4e53d8b6015c076953af48afcca2fda1f4c5e2dbb815b15",
+    "sha256": "afccdc09960ab1b268cb01c40572a7a8a0d8023334744adbebed08a9cabfdf03",
     "archive": "Demo/Resources/managed-A.zip"
   },
   "B": {
     "version": 10001,
-    "sha256": "5945f8b8930c950e0855fe55129bb9895503ab3b6107a4cb2fb0db874c30c8fc",
+    "sha256": "277d640460a9b32025a97eacc974eec26f13d74037d7601a2864abac4678caad",
     "archive": "Demo/Resources/managed-B.zip"
   }
 }

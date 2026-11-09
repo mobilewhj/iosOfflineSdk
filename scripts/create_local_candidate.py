@@ -20,10 +20,12 @@ inputs=sorted(p for base in ('Sources','Vendor','Resources','Demo','Tests','scri
     for p in (root/base).rglob('*') if p.is_file() and not any(v in p.parts for v in ('__pycache__','xcuserdata')))
 inputs += [root/'VERSION',root/'Package.swift',root/'README.md',root/'LICENSE',root/'THIRD_PARTY_NOTICES.md'] + sorted((root/'docs').glob('*.md'))
 manifest={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
-identity=hashlib.sha256(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()).hexdigest()
-candidate=root/'dist'/('OfflineTool-managed-'+identity[:16])
+build_profile='managed'
+identity_inputs={'inputs':manifest,'build_profile':build_profile}
+identity=hashlib.sha256(json.dumps(identity_inputs,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+candidate=root/'dist'/('OfflineTool-'+build_profile+'-'+identity[:16])
 candidate.mkdir(parents=True,exist_ok=False)
-work=root/'build'/('managed-'+identity[:16]);work.mkdir(parents=True,exist_ok=False)
+work=root/'build'/(build_profile+'-'+identity[:16]);work.mkdir(parents=True,exist_ok=False)
 env=os.environ.copy();env['DEVELOPER_DIR']='/Applications/Xcode.app/Contents/Developer'
 commands=[]
 def run(label,cmd):
@@ -42,6 +44,7 @@ for platform in ('device','simulator'):
     metadata=plistlib.loads(info.read_bytes())
     metadata['OFTLocalCandidateIdentity']=identity
     metadata['OFTLocalCandidateOnly']=True
+    metadata['OFTFileUniversalAccessRequired']=True
     info.write_bytes(plistlib.dumps(metadata))
 xc=candidate/'OfflineTool.xcframework'
 run('xcframework',['xcodebuild','-create-xcframework',
@@ -56,7 +59,7 @@ with zipfile.ZipFile(sourcezip,'w',zipfile.ZIP_DEFLATED) as z:
 artifact=candidate/'OfflineTool-managed.xcframework.zip'
 run('artifact-zip',['ditto','-c','-k','--norsrc','--noextattr','--keepParent',str(xc),str(artifact)])
 record={'identity':identity,'local_candidate_only':True,'ios_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),
-    'inputs':manifest,'minimum_ios':'15.0','marketing_version':'0.0.0','candidate_kind':'local-lifecycle-candidate','version_file_preserved':(root/'VERSION').read_text().strip(),
+    'inputs':manifest,'build_profile':build_profile,'minimum_ios':'15.0','marketing_version':'0.0.0','candidate_kind':'local-file-only-candidate','file_universal_access_required':True,'version_file_preserved':(root/'VERSION').read_text().strip(),
     'xcframework':str(xc),'xcframework_info':plistlib.loads((xc/'Info.plist').read_bytes()),
     'artifact_zip_sha256':hashlib.sha256(artifact.read_bytes()).hexdigest(),
     'source_zip_sha256':hashlib.sha256(sourcezip.read_bytes()).hexdigest(),

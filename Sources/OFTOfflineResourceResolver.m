@@ -34,6 +34,20 @@ static NSInteger OFTPort(NSURLComponents *url) { return url.port ? url.port.inte
         [url.host caseInsensitiveCompare:base.host] == NSOrderedSame && OFTPort(url) == OFTPort(base) &&
         !url.user && !url.password && OFTSafePath(url.path) && [url.path hasPrefix:base.path];
 }
++ (NSURL *)fileStaticRootForURL:(NSURL *)URL configuredStaticRoot:(NSURL *)baseURL {
+    if ([self URL:URL isWithinStaticRoot:baseURL]) return baseURL;
+    if (![self isValidStaticRoot:baseURL]) return nil;
+    NSURLComponents *entry = [NSURLComponents componentsWithURL:URL resolvingAgainstBaseURL:NO];
+    NSURLComponents *root = [NSURLComponents componentsWithURL:baseURL resolvingAgainstBaseURL:NO];
+    if (![@[@"http", @"https"] containsObject:entry.scheme.lowercaseString]) return nil;
+    // Android allowHttpAndHttps: equal effective ports, or each protocol's default port.
+    BOOL portsMatch = OFTPort(entry) == OFTPort(root) ||
+        (OFTPort(entry) == ([entry.scheme.lowercaseString isEqualToString:@"https"] ? 443 : 80) &&
+         OFTPort(root) == ([root.scheme.lowercaseString isEqualToString:@"https"] ? 443 : 80));
+    if (!portsMatch) return nil;
+    root.scheme = entry.scheme; root.port = entry.port;
+    return [self URL:URL isWithinStaticRoot:root.URL] ? root.URL : nil;
+}
 - (instancetype)initWithDirectory:(NSURL *)directory baseURL:(NSURL *)baseURL {
     NSURLComponents *base = [NSURLComponents componentsWithURL:baseURL resolvingAgainstBaseURL:NO];
     struct stat info;
@@ -63,8 +77,7 @@ static NSInteger OFTPort(NSURLComponents *url) { return url.port ? url.port.inte
         @"jpg":@"image/jpeg", @"jpeg":@"image/jpeg", @"gif":@"image/gif", @"webp":@"image/webp", @"ico":@"image/x-icon",
         @"woff":@"font/woff", @"woff2":@"font/woff2", @"ttf":@"font/ttf", @"otf":@"font/otf", @"wasm":@"application/wasm",
         @"pdf":@"application/pdf", @"txt":@"text/plain", @"map":@"application/json"};
-    NSString *type = types[relative.pathExtension.lowercaseString];
-    if (!type) return nil;
+    NSString *type = types[relative.pathExtension.lowercaseString] ?: @"application/octet-stream";
     OFTOfflineResource *resource = [OFTOfflineResource new]; resource.fileURL = file; resource.MIMEType = type;
     if ([type hasPrefix:@"text/"] || [@[@"application/json", @"image/svg+xml"] containsObject:type]) resource.textEncodingName = @"utf-8";
     return resource;

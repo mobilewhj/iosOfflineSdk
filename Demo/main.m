@@ -298,10 +298,10 @@
     NSString *userID = self.syntheticUserID;
     NSString *identity = cookieFallback ? @"" : [NSString stringWithFormat:@",user:{userID:'%@',displayName:'Synthetic Demo'},device:{plat:'iOS',ver:'0.0.synthetic',deviceID:'synthetic-device'}", userID];
     // 合成明文 JSON 仅证明既有 getMessage 形状与注入顺序，不复制业务 AES 或真实身份。
-    NSString *bootstrap = [NSString stringWithFormat:@"if(location.hostname==='127.0.0.1' && location.port==='%@' && (location.protocol==='http:' || location.protocol==='offline-managed:') && location.pathname.indexOf('/app/')===0){Object.defineProperty(window,'__OFFLINE_DEMO_BOOTSTRAP__',{value:{displayName:'Synthetic Demo',apiBase:'%@'%@},writable:false});if(location.protocol==='http:'){document.cookie='_demoUser='+encodeURIComponent(JSON.stringify({userID:'synthetic-cookie-user',displayName:'Synthetic Demo'}))+'; path=/';document.cookie='_demoDevice='+encodeURIComponent(JSON.stringify({plat:'iOS',ver:'0.0.synthetic',deviceID:'synthetic-cookie-device'}))+'; path=/';}}", approvedPort, self.serverBase, identity];
-    [configuration.userContentController addUserScript:[[WKUserScript alloc] initWithSource:bootstrap injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO]];
+    NSString *bootstrap = [NSString stringWithFormat:@"if(location.hostname==='127.0.0.1' && location.port==='%@' && location.protocol==='http:' && location.pathname.indexOf('/app/')===0){Object.defineProperty(window,'__OFFLINE_DEMO_BOOTSTRAP__',{value:{displayName:'Synthetic Demo',apiBase:'%@'%@},writable:false});if(location.protocol==='http:'){document.cookie='_demoUser='+encodeURIComponent(JSON.stringify({userID:'synthetic-cookie-user',displayName:'Synthetic Demo'}))+'; path=/';document.cookie='_demoDevice='+encodeURIComponent(JSON.stringify({plat:'iOS',ver:'0.0.synthetic',deviceID:'synthetic-cookie-device'}))+'; path=/';}}", approvedPort, self.serverBase, identity];
+    [configuration.userContentController addUserScript:[[WKUserScript alloc] initWithSource:bootstrap injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSError *error;
-    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration scheme:@"offline-managed" error:&error];
+    OFTPageBinding *binding = [self.sdk pageBindingForConfiguration:configuration error:&error];
     if (!binding) { [self record:@"page-configuration-failed" fields:@{@"page":name, @"reason":@(error.code)}]; return; }
     DemoManagedPage *page = [DemoManagedPage new]; page.name = name; page.binding = binding;
     page.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:configuration];
@@ -322,6 +322,14 @@
     NSURL *entry = [NSURL URLWithString:[self.serverBase stringByAppendingString:@"/app/index.html?demo=managed#ready"]];
     [self.sdk loadPage:entry inWebView:page.webView binding:binding completion:^(OFTPageLoadResult *result, NSError *failure) {
         weakPage.loadResult = result;
+        if (result.loadedURL.isFileURL) {
+            NSData *data = [NSJSONSerialization dataWithJSONObject:@{ @"documentURL":result.loadedURL.absoluteString, @"apiBase":weakSelf.serverBase,
+                @"user":@{ @"userID":userID, @"displayName":@"Synthetic Demo" },
+                @"device":@{ @"plat":@"iOS", @"ver":@"0.0.synthetic", @"deviceID":@"synthetic-device" }} options:0 error:nil];
+            NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            NSString *fileBootstrap = [NSString stringWithFormat:@"(function(c){var u=new URL(location.href),f=new URL(c.documentURL);if(window.top===window&&u.protocol==='file:'&&!u.host&&u.pathname===f.pathname&&u.search===f.search){Object.defineProperty(window,'__OFFLINE_DEMO_BOOTSTRAP__',{value:{displayName:'Synthetic Demo',apiBase:c.apiBase,user:c.user,device:c.device},writable:false});}})(%@);", json];
+            [weakPage.webView.configuration.userContentController addUserScript:[[WKUserScript alloc] initWithSource:fileBootstrap injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+        }
         [weakSelf record:@"page-decision" fields:@{@"page":name, @"offline":result ? @(result.offline) : NSNull.null,
             @"version":result.record ? @(result.record.version) : NSNull.null, @"failed":@(failure != nil)}];
     }];
@@ -382,7 +390,7 @@
     else if (self.automaticSmoke && !self.requestedB) [self selectB];
 }
 - (void)runRedirectCSSProbe:(DemoManagedPage *)page {
-    // CSS 及其相对图片均不在 ZIP，必须走真实 handler；路径与实际样式由 WebKit 回报。
+    // CSS 及其相对图片不在 ZIP；file 页面应报告失败，不做透明回源。
     NSString *script = @"void(function(){var box=document.createElement('div');box.id='redirect-probe';box.textContent='CSS redirect';document.body.appendChild(box);var link=document.createElement('link');link.rel='stylesheet';link.href='css/start.css?case=redirect-css';link.onerror=function(){window.WebViewJavascriptBridge.callHandler('demoReport',{kind:'redirect-css',cssLoaded:false});};link.onload=function(){setTimeout(function(){var style=getComputedStyle(box);var background=style.backgroundImage;var imageURL=background.indexOf('url(')===0?background.slice(4,-1).split(String.fromCharCode(34)).join('').split(String.fromCharCode(39)).join(''):'';var image=new Image();var result={kind:'redirect-css',cssLoaded:true,color:style.color,background:background,cssHref:link.href};image.onload=function(){result.imageLoaded=true;result.width=image.naturalWidth;result.height=image.naturalHeight;window.WebViewJavascriptBridge.callHandler('demoReport',result);};image.onerror=function(){result.imageLoaded=false;window.WebViewJavascriptBridge.callHandler('demoReport',result);};if(imageURL)image.src=imageURL;else{result.imageLoaded=false;window.WebViewJavascriptBridge.callHandler('demoReport',result);}},100);};document.head.appendChild(link);})();";
     [page.webView evaluateJavaScript:script completionHandler:^(id value, NSError *error) {
         [self record:@"redirect-css-injected" fields:@{@"failed":@(error != nil)}];
@@ -429,7 +437,7 @@
     self.faultReadFile = nil;
 }
 - (void)cancelSlowScriptInPage:(DemoManagedPage *)page {
-    // 真实 WK 页面发起请求；dispose 仅取消该页面的 handler，不结束应用级更新。
+    // 真实 WK 页面发起请求；关闭时由宿主 stopLoading；binding.dispose 取消尚未结束的页面选择，不结束应用级更新。
     NSString *script = @"void(function(){var script=document.createElement('script');script.src='slow.js?case=cancel-probe';document.head.appendChild(script);})();";
     [page.webView evaluateJavaScript:script completionHandler:^(id value, NSError *error) {
         [self record:@"slow-script-inserted" fields:@{@"failed":@(error != nil)}];
@@ -489,4 +497,7 @@
 - (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error { [self record:@"web-navigation-failed" fields:@{@"reason":@(error.code), @"domain":error.domain}]; }
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error { [self record:@"web-provisional-failed" fields:@{@"reason":@(error.code), @"domain":error.domain}]; }
 @end
-int main(int argc, char **argv) { @autoreleasepool { return UIApplicationMain(argc, argv, nil, NSStringFromClass(DemoDelegate.class)); } }
+int main(int argc, char **argv) { @autoreleasepool {
+    NSString *delegate = [NSProcessInfo.processInfo.arguments containsObject:@"--file-url-probe"] ? @"OFTFileProbeDelegate" : NSStringFromClass(DemoDelegate.class);
+    return UIApplicationMain(argc, argv, nil, delegate);
+} }
